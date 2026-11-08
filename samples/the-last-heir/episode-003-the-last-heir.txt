@@ -1,0 +1,90 @@
+EPISODE NUMBER: Episode 3
+EPISODE LOGLINE: At the Halden mansion, Mara learns that Elias is the missing heir, and Vivian arrives with a secret that could destroy them both.
+CONTINUITY NOTES: Follows the arrest scene; Elias has brought Mara to the Halden estate.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. HALDEN MANSION - STUDY - NIGHT
+Scene start: 00:00.00
+Scene end: 00:52.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.00) | End: (00:02.90)
+Firelight in a vast study. Mara stands in her wet uniform, staring at a family portrait.
+
+**MARA (Quiet, Hurt):**
+Start: (00:03.00) | End: (00:05.90)
+"That's you. In the portrait. You lied to me."
+
+**ELIAS (Tired, Honest):**
+Start: (00:06.00) | End: (00:09.40)
+"I left this family five years ago. I didn't want their name."
+
+**MARA (Bitter):**
+Start: (00:09.50) | End: (00:11.90)
+"So you drove rich people around for fun?"
+
+**ELIAS (Low):**
+Start: (00:12.00) | End: (00:14.90)
+"I was looking for the person who ruined my mother."
+
+**ACTION:**
+Start: (00:15.00) | End: (00:17.40)
+Elias slides a photograph across the desk toward Mara.
+
+**CAMERA:**
+Start: (00:17.50) | End: (00:19.40)
+Close-up on the photograph: a young Vivian beside a burning car.
+
+**MARA (Shocked, Breathless):**
+Start: (00:19.50) | End: (00:21.40)
+"That's Vivian."
+
+**SOUND FX:**
+Start: (00:21.50) | End: (00:22.90)
+The study doors bang open.
+
+**VIVIAN (Icy, Confident):**
+Start: (00:23.00) | End: (00:26.40)
+"Showing her old pictures, Elias? I brought a newer one."
+
+**ACTION:**
+Start: (00:26.50) | End: (00:28.90)
+Vivian holds up a document stamped with a hospital seal.
+
+**VIVIAN (Cruel, Savoring):**
+Start: (00:29.00) | End: (00:33.40)
+"Mara's mother isn't sick. She's in prison, for the fire that killed yours."
+
+**CAMERA:**
+Start: (00:33.50) | End: (00:35.40)
+Close-up on Mara, the color draining from her face.
+
+**MARA (Trembling, Disbelieving):**
+Start: (00:35.50) | End: (00:37.40)
+"That's a lie."
+
+**VIVIAN (Smug):**
+Start: (00:37.50) | End: (00:39.90)
+"Ask him why he really followed you."
+
+**ACTION:**
+Start: (00:40.00) | End: (00:42.90)
+Mara turns slowly toward Elias, waiting for him to deny it.
+
+**ELIAS (Quiet, Pained):**
+Start: (00:43.00) | End: (00:45.40)
+"Mara... I can explain."
+
+**MARA (Broken, Furious):**
+Start: (00:45.50) | End: (00:48.90)
+"You knew. From the very first night, you knew who I was."
+
+**SOUND FX:**
+Start: (00:49.00) | End: (00:51.90)
+A deep string swell holds on Mara backing away toward the door.
+
+--- SCRIPT END ---

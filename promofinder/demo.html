@@ -101,6 +101,7 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
     <div class="actions">
       <button class="pill mag" id="runLlm" disabled>Run with LLM judge</button>
       <button class="pill sec" id="runOff" disabled>Run offline (no API)</button>
+      <button class="pill sec" id="sampleBtn" hidden>Try the sample show</button>
     </div>
   </section>
 
@@ -117,6 +118,7 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
     <div id="main"></div>
   </div>
 </div>
+<p class="note" id="foot" hidden style="text-align:center;font-size:13px;margin:32px 0 40px"></p>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -128,18 +130,22 @@ async function api(path,body,raw){const opt=body===undefined?{}:{method:"POST",h
  let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||`Request failed (${r.status}).`);return j}
 
 async function budget(){try{const b=await api("/api/budget");$("#runLlm").dataset.ok=b.llm_available?"1":"";
- $("#runLlm").title=b.llm_available?"":"No LLM key in .env";if(!b.llm_available)$("#runLlm").disabled=true}catch(e){}}
+ $("#runLlm").title=b.llm_available?"":"No LLM key in .env";if(!b.llm_available)$("#runLlm").disabled=true;
+ $("#sampleBtn").hidden=!b.sample;
+ if(b.hosted){$("#foot").hidden=false;$("#foot").textContent=`Uploads up to ${b.max_upload_mb} MB, deleted after 6 hours. Shortlisted clips are scored by ${b.provider?b.provider+"'s":"an"} AI API.`}}catch(e){}}
+function ready(r,title){$("#dropTitle").textContent=title;
+ $("#dropSub").textContent=r.skipped&&r.skipped.length?`${r.skipped.length} non-script files ignored`:"ready to run";
+ $("#files").innerHTML=r.files.slice(0,8).map(f=>`<span class="chip">${esc(f)}</span>`).join("")+(r.files.length>8?`<span class="chip">+${r.files.length-8} more</span>`:"");
+ $("#runLlm").disabled=!$("#runLlm").dataset.ok;$("#runOff").disabled=false;showProgress();refreshJob()}
+async function loadSample(){try{const r=await api("/api/sample",{});ready(r,`Sample show · ${r.files.length} scripts loaded`)}catch(e){toast(e.message)}}
 
 async function upload(file){if(!file)return;if(!/\.zip$/i.test(file.name)){toast("please choose a .zip");return}
  $("#dropTitle").textContent=`Uploading ${file.name}…`;
  try{const r=await api("/api/upload",file,file.name);
-  $("#dropTitle").textContent=`${file.name} · ${r.files.length} scripts extracted`;
-  $("#dropSub").textContent=r.skipped.length?`${r.skipped.length} non-script files ignored`:"ready to run";
-  $("#files").innerHTML=r.files.slice(0,8).map(f=>`<span class="chip">${esc(f)}</span>`).join("")+(r.files.length>8?`<span class="chip">+${r.files.length-8} more</span>`:"");
-  $("#runLlm").disabled=!$("#runLlm").dataset.ok;$("#runOff").disabled=false;showProgress();await refreshJob()}
+  ready(r,`${file.name} · ${r.files.length} scripts extracted`)}
  catch(e){$("#dropTitle").textContent="Drop the scripts .zip here";$("#dropSub").textContent=e.message;toast(e.message)}}
 
-const STEPS=[["Upload",j=>!!j.upload],["Extract",j=>j.log?.some(l=>l.includes("extracted"))],["Parse",j=>j.log?.some(l=>l.includes("parsed"))],
+const STEPS=[["Upload",j=>j.status&&j.status!=="idle"],["Extract",j=>j.log?.some(l=>l.includes("extracted")||l.includes("sample show"))],["Parse",j=>j.log?.some(l=>l.includes("parsed"))],
  ["Candidates",j=>j.log?.some(l=>l.includes("stitched"))],["Shortlist",j=>j.log?.some(l=>l.includes("prefilter"))],
  ["LLM judge",j=>j.to_judge>0&&j.judged>=j.to_judge],["Pairwise",j=>j.pairs_total>0?j.pairs>=j.pairs_total:j.status==="done"],["Rank & plan",j=>j.status==="done"]];
 function showProgress(){$("#progress").hidden=false}
@@ -202,7 +208,7 @@ async function retrain(b){b.disabled=true;$("#rt").innerHTML=`<p class="note">Tr
 const drop=$("#drop");["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over")}));
 ["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over")}));
 drop.addEventListener("drop",ev=>upload(ev.dataTransfer.files[0]));$("#file").onchange=e=>upload(e.target.files[0]);
-$("#runLlm").onclick=()=>start(false);$("#runOff").onclick=()=>start(true);
+$("#runLlm").onclick=()=>start(false);$("#runOff").onclick=()=>start(true);$("#sampleBtn").onclick=loadSample;
 budget();load();refreshJob().then(j=>{if(j.status==="running"){showProgress();poll=setInterval(async()=>{const k=await refreshJob();if(k.status!=="running"){clearInterval(poll);load()}},1000)}}).catch(()=>{});
 </script>
 </body>

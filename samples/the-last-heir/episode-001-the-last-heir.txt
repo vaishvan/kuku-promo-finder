@@ -1,0 +1,110 @@
+EPISODE NUMBER: Episode 1
+EPISODE LOGLINE: A waitress at a charity gala is publicly humiliated by her stepsister and fired on the spot, until the quiet chauffeur steps in.
+CONTINUITY NOTES: First episode. Establishes Mara, her cruel stepsister Vivian, and Elias, the chauffeur nobody notices.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. GRAND BALLROOM - NIGHT
+Scene start: 00:00.00
+Scene end: 01:01.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.00) | End: (00:02.90)
+Wide shot of a glittering ballroom; Mara weaves between guests with a tray of champagne.
+
+**ACTION:**
+Start: (00:03.00) | End: (00:05.40)
+Vivian, in a red gown, deliberately steps into Mara's path; the tray crashes to the floor.
+
+**SOUND FX:**
+Start: (00:05.50) | End: (00:07.40)
+Shattering glass silences the room.
+
+**VIVIAN (Loud, Mocking):**
+Start: (00:07.50) | End: (00:09.90)
+"Oh no. The help can't even carry a tray."
+
+**MARA (Shaken, Quiet):**
+Start: (00:10.00) | End: (00:12.40)
+"You tripped me. Everyone saw it."
+
+**VIVIAN (Cold, Smiling):**
+Start: (00:12.50) | End: (00:15.40)
+"Everyone saw a waitress embarrass my father's gala."
+
+**CAMERA:**
+Start: (00:15.50) | End: (00:17.40)
+Close-up on Mara's trembling hands, glass shards around her shoes.
+
+**EVENT MANAGER (Furious, Shouting):**
+Start: (00:17.50) | End: (00:19.90)
+"Mara! Get out. You're fired!"
+
+**MARA (Desperate, Pleading):**
+Start: (00:20.00) | End: (00:23.40)
+"Please, I need this job. My mother's hospital bills..."
+
+**VIVIAN (Cruel, Delighted):**
+Start: (00:23.50) | End: (00:27.40)
+"Then maybe your mother should have raised a daughter who knows her place."
+
+**ACTION:**
+Start: (00:27.50) | End: (00:29.90)
+Guests laugh; someone raises a phone to film Mara on her knees.
+
+**CAMERA:**
+Start: (00:30.00) | End: (00:32.90)
+Slow push-in on the ballroom doors as a tall man in a chauffeur's coat walks in.
+
+**ELIAS (Low, Calm):**
+Start: (00:33.00) | End: (00:34.90)
+"Put the phone down."
+
+**VIVIAN (Scornful):**
+Start: (00:35.00) | End: (00:37.40)
+"Who let the driver in? Go wait by the car."
+
+**ACTION:**
+Start: (00:37.50) | End: (00:40.40)
+Elias kneels and helps Mara to her feet, ignoring Vivian completely.
+
+**ELIAS (Gentle):**
+Start: (00:40.50) | End: (00:41.90)
+"Are you hurt?"
+
+**MARA (Whispering, Confused):**
+Start: (00:42.00) | End: (00:43.90)
+"Why are you helping me?"
+
+**ELIAS (Quiet, Certain):**
+Start: (00:44.00) | End: (00:46.40)
+"Because nobody else in this room will."
+
+**VIVIAN (Shrill, Outraged):**
+Start: (00:46.50) | End: (00:48.90)
+"Security! Throw them both out!"
+
+**ACTION:**
+Start: (00:49.00) | End: (00:51.90)
+Two guards move in. Elias steps in front of Mara and holds up a single black card.
+
+**CAMERA:**
+Start: (00:52.00) | End: (00:53.90)
+Extreme close-up on the card: a gold crest. The guards freeze.
+
+**GUARD (Stunned, Whispering):**
+Start: (00:54.00) | End: (00:56.40)
+"Sir... we didn't know it was you."
+
+**VIVIAN (Shaken):**
+Start: (00:56.50) | End: (00:58.40)
+"Know what? He's a driver."
+
+**SOUND FX:**
+Start: (00:58.50) | End: (01:00.90)
+A low string sting holds on Vivian's frozen face.
+
+--- SCRIPT END ---

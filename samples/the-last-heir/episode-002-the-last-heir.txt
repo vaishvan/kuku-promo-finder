@@ -1,0 +1,98 @@
+EPISODE NUMBER: Episode 2
+EPISODE LOGLINE: Vivian tries to have Mara arrested for stealing a diamond bracelet, and Elias is forced to choose between his secret and the woman he defended.
+CONTINUITY NOTES: Picks up after the gala; the guards' reaction to Elias's card is unexplained.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: EXT. HOTEL ENTRANCE - NIGHT
+Scene start: 00:00.00
+Scene end: 00:55.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.00) | End: (00:02.90)
+Rain on the hotel steps. Mara hurries out, coat over her uniform.
+
+**VIVIAN (Shouting, Triumphant):**
+Start: (00:03.00) | End: (00:05.40)
+"Stop her! She stole my bracelet!"
+
+**ACTION:**
+Start: (00:05.50) | End: (00:07.90)
+A police officer blocks Mara's way at the bottom of the steps.
+
+**MARA (Panicked):**
+Start: (00:08.00) | End: (00:09.90)
+"I never touched her bracelet!"
+
+**OFFICER (Stern):**
+Start: (00:10.00) | End: (00:12.40)
+"Then you won't mind if I check your bag."
+
+**ACTION:**
+Start: (00:12.50) | End: (00:15.40)
+The officer opens Mara's bag and lifts out a diamond bracelet.
+
+**SOUND FX:**
+Start: (00:15.50) | End: (00:17.40)
+Gasps from the guests gathered under the awning.
+
+**MARA (Horrified, Weeping):**
+Start: (00:17.50) | End: (00:20.40)
+"Someone put that there. I swear it!"
+
+**VIVIAN (Smug, Cold):**
+Start: (00:20.50) | End: (00:22.40)
+"Thieves always swear."
+
+**OFFICER (Firm):**
+Start: (00:22.50) | End: (00:24.90)
+"Turn around. You're under arrest."
+
+**CAMERA:**
+Start: (00:25.00) | End: (00:26.90)
+Close-up on the handcuffs closing on Mara's wrists.
+
+**ELIAS (Low, Dangerous):**
+Start: (00:27.00) | End: (00:29.90)
+"Check the hotel cameras before you take her anywhere."
+
+**VIVIAN (Mocking):**
+Start: (00:30.00) | End: (00:32.40)
+"Listen to the chauffeur giving orders."
+
+**ELIAS (Calm, Cold):**
+Start: (00:32.50) | End: (00:35.40)
+"The cameras are mine. I own this hotel."
+
+**ACTION:**
+Start: (00:35.50) | End: (00:37.90)
+The officer looks from Elias to Vivian; Vivian's smile slips.
+
+**VIVIAN (Stammering):**
+Start: (00:38.00) | End: (00:40.90)
+"That's impossible. The Halden family owns this hotel."
+
+**ELIAS (Quiet):**
+Start: (00:41.00) | End: (00:42.90)
+"Yes. They do."
+
+**MARA (Whispering, Stunned):**
+Start: (00:43.00) | End: (00:45.40)
+"Elias... who are you?"
+
+**ACTION:**
+Start: (00:45.50) | End: (00:48.40)
+A black car pulls up; an old man in a suit steps out and stares at Elias.
+
+**OLD MAN (Grave, Shaken):**
+Start: (00:48.50) | End: (00:52.40)
+"Five years, Elias. Your father is dying, and you come back as a driver?"
+
+**SOUND FX:**
+Start: (00:52.50) | End: (00:54.90)
+Thunder cracks over the street as the screen cuts to black.
+
+--- SCRIPT END ---
