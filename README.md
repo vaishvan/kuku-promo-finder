@@ -54,10 +54,13 @@ python -m promofinder serve --show runs/live      # or preload an existing run
    key or model needs no restart. If the judge can't run (rejected key, unavailable model, network, OpenRouter's daily
    quota), the run stops without mixing scores and the page explains why in plain words with a one-click fix
    ("Run offline instead", "Choose another zip", "Try again").
-3. **Results:** promo cards (timecodes, handles, opening/ending lines, judge scores and reason, hook type, policy and
-   spoiler flags, score band, the script behind the cut), posting plan, evaluation (only when gold labels exist for
-   that show), and a learning-loop tab where Accept/Reject clicks retrain a challenger and run the gate.
-   Demo clicks go to `runs/feedback.demo.jsonl`; the demo never saves or promotes a model.
+3. **Results:** tabs **To review**, **Accepted**, **Rejected**, **Posting plan**, **Learning loop**. Each promo card
+   shows timecodes, opening and ending lines, the judge's scores and reason, hook type, ad-policy and spoiler flags,
+   and the script behind the cut. Accept or Reject moves a clip into its list (Undo sends it back); those choices are
+   the labels. **Learning loop → Retrain** learns from them, checks itself on held-out episodes, and explains the
+   result in plain words ("cares less about a shocking opening"). Labels are stored per run
+   (`<run>/feedback.demo.jsonl`), so every run starts unreviewed; the demo never saves or promotes a model.
+   Evaluation numbers are deliberately not in the UI: they're in `eval` output and the Results section below.
 
 UI styling follows the Figma design profile from getdesign.md (black/white canvas, pill buttons, pastel color
 blocks). Talk track for a 3-minute recording: [DEMO_SCRIPT.md](DEMO_SCRIPT.md).

@@ -24,7 +24,25 @@ from .ingest import extract_scripts
 from .judge import get_judge, load_env
 
 HERE = os.path.dirname(__file__)
-DEMO_FEEDBACK = "runs/feedback.demo.jsonl"
+PLAIN = {  # feature -> how an editor would say it
+    "hook_arousal": "a shocking opening", "hook_dialogue": "opening on a spoken line", "clean_entry": "a clean starting point",
+    "cliff_proximity": "ending where the episode ends", "cliff_content": "ending on a threat or demand",
+    "cliff_open_end": "ending on an unanswered line", "resolution": "endings that wrap things up",
+    "conflict_density": "lots of conflict", "emotion_intensity": "high emotion", "speech_ratio": "lots of dialogue",
+    "turn_rate": "fast back-and-forth", "standalone": "being easy to follow cold", "dur_fit": "the clip's length",
+    "j_hook": "the AI judge's hook score", "j_cliff": "the AI judge's cliffhanger score",
+    "j_standalone": "the AI judge's standalone score", "j_emotion": "the AI judge's emotion score",
+    "hook_and_payoff": "having both a hook and a payoff"}
+
+
+def fb_path(out):
+    return os.path.join(out, "feedback.demo.jsonl")
+
+
+def plain_shifts(old, new, n=4):
+    """The biggest weight changes, as sentences."""
+    shifts = sorted(((new.w[k] - old.w[k], k) for k in M.FEATURES if k in PLAIN), key=lambda t: -abs(t[0]))[:n]
+    return [f"{'Cares more' if d > 0 else 'Cares less'} about {PLAIN[k]}" for d, k in shifts if abs(d) >= 0.05] or ["Hardly anything changed yet"]
 UPLOADS = "runs/uploads"
 MAX_UPLOAD = 100 * 1024 * 1024
 # Free tier = 50 requests/day: 10 best clips + 30 reserved episode endings + 2 stitches (~42, fewer after overlap and
@@ -65,7 +83,7 @@ def state(out, n_eps=None):
     if os.path.exists(os.path.join(out, "eval.json")):
         with open(os.path.join(out, "eval.json"), encoding="utf-8") as f:
             ev = json.load(f)
-    fb = L.load_feedback(DEMO_FEEDBACK)
+    fb = L.load_feedback(fb_path(out))
     return {"manifest": d["manifest"], "promos": promos, "waves": waves, "eval": ev,
             "feedback": {r["id"]: r["y"] for r in fb}, "out": out, "model": M.load().version}
 
@@ -259,33 +277,55 @@ class H(BaseHTTPRequestHandler):
         return {"ok": True}
 
     def feedback(self, body):
+        """accept / reject / clear one promo. Labels live next to the run, so every new run starts unreviewed."""
+        path = fb_path(H.out)
         promos = {p["id"]: p for p in state(H.out)["promos"]}
-        p = promos[body["id"]]
-        rec = {"id": p["id"], "episode": p["segments"][0]["episode"], "x": p["features"], "ts": time.time(),
-               "y": 1 if body["decision"] == "accept" else 0, "editor": "demo", "src": "ui", "schema": p.get("schema")}
-        others = [r for r in L.load_feedback(DEMO_FEEDBACK) if r["id"] != p["id"]]  # latest click wins
-        os.makedirs("runs", exist_ok=True)
-        with open(DEMO_FEEDBACK, "w", encoding="utf-8") as f:
-            for r in others + [rec]:
+        p = promos.get(body.get("id"))
+        if p is None:
+            raise ValueError("That clip isn't in the current run.")
+        others = [r for r in L.load_feedback(path) if r["id"] != p["id"]]  # latest click wins
+        keep = others
+        if body.get("decision") in ("accept", "reject"):
+            keep = others + [{"id": p["id"], "episode": p["segments"][0]["episode"], "x": p["features"], "ts": time.time(),
+                              "y": 1 if body["decision"] == "accept" else 0, "editor": "demo", "src": "ui", "schema": p.get("schema")}]
+        with open(path, "w", encoding="utf-8") as f:
+            for r in keep:
                 f.write(json.dumps(r) + "\n")
-        return {"ok": True, "labels": len(others) + 1}
+        return {"ok": True, "labels": len(keep)}
 
     def retrain(self):
+        """Trial retrain from the editor's choices, explained in plain words. Never saved or promoted."""
         from .cli import _ctx
         champ = M.load()
-        chall, note = L.retrain(champ, min_labels=4, path=DEMO_FEEDBACK)
+        chall, note = L.retrain(champ, min_labels=4, path=fb_path(H.out))
         if chall is None:
-            return {"note": note}
+            return {"message": "Review at least 4 clips (accept or reject) first."}
         ctx = _ctx(H.scripts)
         gold = [g for g in E.load_gold("gold/gold.jsonl") if g.get("show") == ctx["show"]]
+        learned = plain_shifts(champ, chall)
         if not gold:
-            return {"note": note + "; no gold labels exist for this show, so the gate cannot evaluate a challenger"}
+            return {"verdict": "There are no editor labels for this show yet, so there's no fair way to check whether the "
+                               "retrained ranker is better. It is kept as a trial only.", "promote": False,
+                    "before": {"good": "–", "bad": "–"}, "after": {"good": "–", "bad": "–"}, "learned": learned}
         rows = P.load_rows(os.path.join(H.out, "rows.jsonl"))
         res = L.gate(rows, ctx, gold, champ, chall, int(ctx["n_eps"] * 0.6) + 1, ctx["n_eps"])
-        shifts = sorted(((chall.w[k] - champ.w[k], k) for k in M.FEATURES), key=lambda t: -abs(t[0]))[:5]
-        return {"note": note, "promote": res["promote"], "reason": res["reason"], "ci": res["ndcg_gain_ci"],
-                "champion": res["champion"]["metrics"], "challenger": res["challenger"]["metrics"],
-                "shifts": [[k, round(d, 2)] for d, k in shifts], "saved": False}
+        c, n = res["champion"]["metrics"], res["challenger"]["metrics"]
+        reason = res["reason"]
+        if res["promote"]:
+            verdict = "On episodes it never saw, it finds more good clips without adding bad ones."
+        elif "known-bad" in reason:
+            verdict = "It finds more good clips, but it also starts picking clips an editor marked as bad, so it isn't trusted yet."
+        elif "noise" in reason:
+            verdict = "It looks a little better, but the difference is too small to trust from this many choices."
+        elif "validity" in reason:
+            verdict = "It produced clips that break the cutting rules, so it was rejected."
+        else:
+            verdict = "It isn't better than the current ranker on episodes it never saw."
+        count = lambda m, k: int(round((m.get(k) or 0) * 10))
+        return {"promote": res["promote"], "verdict": verdict,
+                "before": {"good": count(c, "precision@10"), "bad": count(c, "bad_rate@10")},
+                "after": {"good": count(n, "precision@10"), "bad": count(n, "bad_rate@10")},
+                "learned": learned, "saved": False}
 
     def eval(self):
         from .cli import main

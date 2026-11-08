@@ -8,8 +8,7 @@ the prototype, and communication. Spoken lines are in quotes; screen actions are
 
 ```bash
 cd dev/kuku
-rm -f runs/feedback.demo.jsonl          # start the learning-loop tab clean
-python -m promofinder serve             # http://127.0.0.1:8765
+python -m promofinder serve             # http://127.0.0.1:8765 (every run starts with nothing reviewed)
 ```
 
 - Have the scripts zip ready in a file explorer window next to the browser (drag-and-drop looks best on camera).
@@ -56,7 +55,8 @@ flagged ones for a human."
 
 ## 1:30 – 2:10 · How I know it's good, and where it fails
 
-[Evaluation tab]
+[The UI has no evaluation screen on purpose. Show the README "Results" section on GitHub, or run
+`python -m promofinder --out runs/live eval` in a terminal]
 
 "I hand-labelled regions across all 50 episodes, held out the last 20 episodes, and froze a third of the labels
 as a test set that the gate never sees. Honest result: on those labels a dumb baseline, the last 40 seconds of
@@ -68,12 +68,13 @@ it still misses ends on a purely visual beat, which is exactly what the LLM judg
 
 ## 2:10 – 2:45 · It learns from the editor
 
-[Learning loop tab. Back on Promos: Accept 4–5 good ones, Reject 2–3 weak ones. Return, click Retrain]
+[To review tab: Accept 4–5 strong clips and Reject 2–3 weak ones; they move into the Accepted and Rejected tabs.
+Open Learning loop, click "Retrain from my choices"]
 
-"Every Accept or Reject is a label. Retraining fits new weights, then a gate compares the new model with the
-current one on held-out episodes, using a bootstrap interval, and promotes only if the gain is clearly above noise
-and it adds no known-bad picks. With a dozen clicks and a thin label set, read this as a demo of the mechanics:
-the gate is only as good as its labels."
+"Accepting builds my shortlist; rejecting tells it what not to pick, and both are labels. Retrain learns from my
+choices and then checks itself on episodes it has never seen: it only replaces the current ranker if it finds more
+good clips without adding bad ones. Here it says the gain is too small to trust from this many clicks, and it tells
+me in plain words what it learned. It never saves on its own."
 
 ## 2:45 – 3:00 · Scale, cost, and where AI got it wrong
 
