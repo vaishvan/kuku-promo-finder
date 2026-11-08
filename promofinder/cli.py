@@ -28,7 +28,8 @@ def cmd_run(a):
     judge, model = get_judge(offline=a.offline), M.load()
     prefilters = [M.load("v0000")] + ([model] if model.version != "v0000" else [])
     rows, ctx, stats = P.featurize(a.scripts, judge, prefilters, top_n=a.top_n, aliases=P.load_aliases(a.aliases),
-                                   allow_mixed_judge=a.allow_mixed_judge, stitch_n=a.stitch_n)
+                                   allow_mixed_judge=a.allow_mixed_judge, stitch_n=a.stitch_n,
+                                   reserve_endings=a.reserve_endings if a.reserve_endings == "all" else int(a.reserve_endings))
     P.save_rows(rows, os.path.join(a.out, "rows.jsonl"))
     promos = P.rank(rows, model, k=a.k, exclude_review=a.exclude_review)
     promos = P.pairwise_rerank(promos, rows, judge, top=a.pairwise_top)
@@ -224,6 +225,7 @@ def main(argv=None):
     r.add_argument("--pairwise-top", type=int, default=10, help="LLM judge only: re-rank this many by pairwise comparison")
     r.add_argument("--exclude-review", action="store_true", help="drop clips flagged for ad-policy review")
     r.add_argument("--stitch-n", type=int, default=30, help="stitched candidates sent to the judge")
+    r.add_argument("--reserve-endings", default="all", help="episode-ending windows always shortlisted: a number, or all")
     r.add_argument("--offline", action="store_true", help="force the offline judge (no API calls)")
     r.add_argument("--allow-mixed-judge", action="store_true", help="accept a run where >20%% of rows fell back to the offline judge")
     r.set_defaults(f=cmd_run)

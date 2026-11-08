@@ -156,7 +156,14 @@ def test_lexicons_match_whole_words_only():
 def test_music_cue_is_not_a_cliffhanger():
     from promofinder.features import CODE_FEATURES
     assert "cliff_marker" not in CODE_FEATURES  # fix B1: music/SFX cue feature removed
-    assert M.PRIOR["w"]["cliff_proximity"] < M.PRIOR["w"]["cliff_content"]
+    assert "cliff_content" in CODE_FEATURES  # unresolvedness is read from story content
+
+
+def test_shortlist_reserves_episode_endings():
+    ends = {r["segments"][0][0] for r in ROWS if len(r["segments"]) == 1
+            and abs(r["segments"][-1][2] - r["view"]["ep_ends"][-1]) < 0.01}
+    # every episode ending that passes the hook-and-payoff minimum reaches the judged pool (39/50 on this show)
+    assert len(ends) >= 35, len(ends)
 
 
 def test_no_candidate_starts_or_ends_mid_sentence():

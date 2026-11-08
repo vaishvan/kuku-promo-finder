@@ -75,32 +75,46 @@ a smaller pool: `run --top-n 25 --stitch-n 2 --pairwise-top 4` is about 40 calls
 3. A logistic ranker weighs the features; weights are retrained from feedback and gated.
 4. Cuts never start on the second half of a split line or end right before one.
 
-## Results (2026-11-08, after all review fixes)
+## Results (2026-11-08)
 
 Gold: 64 builder-written regions; validation split 45, frozen test split 19. Held-out block = Ep 31–50
-(validation gold there: 2 must, 6 good, 5 bad).
+(validation gold there: 2 must, 6 good, 5 bad). All numbers below are on held-out validation gold.
 
-### LLM-judged run (`runs/live`, nvidia/nemotron-3.5-super-vl:free via OpenRouter, $0)
+### Shortlist fix: always judge each episode's ending
 
-27-candidate shortlist (free tier = 50 requests/day): 9 new calls + 18 cached, 0 retries, 0 fallbacks.
+The first LLM run missed both held-out must-haves because a pure top-N shortlist never contained them. Two changes:
+1. **Every episode's best ending window is reserved in the shortlist** (`--reserve-endings all`; 39 of 50 episodes
+   have an ending that passes the hook-and-payoff minimum).
+2. **The ending-proximity prior went from 0.3 to 2.5**, chosen from five values on the *training* episodes only
+   (train NDCG@10 0.12 → 0.31), then checked on held-out once.
 
-| System | held-out P@10 | NDCG@10 | must-recall@10 | top-10 good / bad / unlabelled |
+| System (offline judge, full 186-clip pool) | P@10 | NDCG@10 | must-recall@10 | top-10 good / bad / unlabelled |
 |---|---|---|---|---|
-| random valid windows (from all ~15K candidates) | 0.0 | 0.00 | 0.0 | 0 / 1 / 9 |
-| last 40s of every episode (ordered by prior score) | 0.4 | 0.41 | 1.0 | 4 / 1 / 5 |
-| code features only, same shortlist | 0.1 | 0.14 | 0.0 | 1 / 0 / 9 |
-| code features + LLM judge, same shortlist | 0.1 | 0.14 | 0.0 | 1 / 0 / 9 |
+| random valid windows | 0.0 | 0.00 | 0.0 | 0 / 1 / 9 |
+| last 40 s of every episode | 0.4 | 0.41 | 1.0 | 4 / 1 / 5 |
+| model before the fix | 0.1 | 0.14 | 0.0 | 1 / 0 / 9 |
+| **model after the fix** | **0.3** | **0.21** | **0.5** | **3 / 0 / 7** |
 
-What this says, plainly:
-- **On this labelled set, the simple baseline wins.** Once its order stopped depending on episode number, "last 40 s of every episode" finds every held-out must-have. The brief defines a promo as ending on a cliffhanger, and this show ends every episode on one, so episode endings are a strong prior.
-- **The model's weak spot is the shortlist, not the judge.** The two held-out must-haves (Ep 41 cathedral explosion, Ep 45 marriage declared void) never reached the 27-clip shortlist, so the LLM never saw them. The free-tier budget forced the shortlist that small; the offline run uses 178.
-- **Most of the model's picks are unlabelled** (9 of 10), mostly mid-episode moments the gold never covered. They are in `to_label.csv`. Until an editor labels them, the model's precision is unknown rather than low.
-- The model makes 0 known-bad picks in its held-out top 10; the baseline makes 1.
-- Next fixes, in order: guarantee each episode's ending window a place in the shortlist (cheap, and the baseline shows it matters), judge the full 178-candidate pool when quota allows, then label `to_label.csv`.
+- The gap to the baseline halved, with 0 known-bad picks (the baseline has 1). The baseline still leads.
+- **Still missed: Ep 41's cathedral explosion.** Its ending closes on a visual beat with no dialogue ("silhouetted
+  armed figures emerge through the smoke"), which the code cliffhanger signal scores 0. I did not add those words to
+  the lexicon (that would be tuning on the test set); seeing visual beats is the LLM judge's job, and it now gets
+  camera and action lines.
+- 7 of the top 10 are unlabelled mid-episode picks (`to_label.csv`).
+
+### LLM judge (OpenRouter free tier, `nvidia/nemotron-3.5-super-vl:free`, $0)
+
+- The judged run in `runs/live` predates the shortlist fix: its 27 clips contain no episode endings, so under the new
+  prior it scores NDCG@10 0.07. **It needs re-running with the new shortlist**, which is about 35 new judgements plus
+  12 pairwise comparisons: one day of the 50-request free quota.
+- Free-tier shortlist for the LLM: 10 best clips + 30 reserved endings + 2 stitches. The demo caps new calls at the
+  remaining quota and serves cached clips for free.
+- From the earlier run: 0 retries, 0 fallbacks; the judge's reasons are specific and critical ("Opening accusation
+  is talky, not shocking"; "'dead Duke' relationship confuses newcomers").
 
 ## Known limits (read before trusting any number)
 1. **Gold and simulated feedback are both written by the builder**; validation gold in the held-out block is 13 items. No inter-annotator check.
-2. **The LLM judge has only seen a 27-clip shortlist** (free-tier limit). On held-out labels it did not change the ranking, and the shortlist missed both held-out must-haves. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
+2. **The LLM judge has not yet scored the fixed shortlist** (free-tier quota); its held-out effect is unmeasured. Endings that close on a purely visual beat score 0 on the code cliffhanger signal. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
 3. **One show.** Generalisation untested. The alias table is per show and hand-written.
 4. **Policy and spoiler labels are word lists**, not a policy-trained classifier; treat "review" as "a human looks", not as a verdict.
 5. **Scores are uncalibrated** (all near 0.99); use the rank.

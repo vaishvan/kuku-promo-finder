@@ -13,6 +13,9 @@ python -m promofinder serve             # http://127.0.0.1:8765
 ```
 
 - Have the scripts zip ready in a file explorer window next to the browser (drag-and-drop looks best on camera).
+- **Once, before recording day** (needs a fresh daily quota): upload the zip and click "Run with LLM judge" so the
+  new shortlist (episode endings included) gets judged and cached, about 47 requests. On camera the same upload then
+  replays from cache in about 25 seconds, for free. Until then, use "Run offline".
 - Browser zoom 100–110%, close other tabs. The header shows how many free LLM requests are left today.
 - Every clip the judge has already scored is cached, so uploading the same zip again costs nothing and runs in
   about 20 seconds. A different zip spends real requests: about 27 for scoring plus up to 12 for pairwise
@@ -60,11 +63,11 @@ flagged ones for a human."
 
 "I hand-labelled regions across all 50 episodes, held out the last 20 episodes, and froze a third of the labels
 as a test set that the gate never sees. Honest result: on those labels a dumb baseline, the last 40 seconds of
-every episode, beats my model, because this show ends every episode on a cliffhanger. The tool tells me why: the
-two must-haves it missed, like the cathedral explosion in episode 41, never made the 27-clip shortlist I could
-afford on the free tier, so the judge never saw them. And most of my model's picks are mid-episode moments I never
-labelled: unknown, not wrong. They go to a file for an editor. The fix is clear: always shortlist each episode's
-ending, and judge the full pool."
+every episode, still beats my model, because this show ends every episode on a cliffhanger. The tool told me why:
+the two must-haves it missed never made the shortlist, so the judge never saw them. Most of my model's picks are mid-episode moments I never
+labelled: unknown, not wrong. So I fixed the shortlist to always include each episode's ending, picked one weight on
+the training episodes only, and the gap halved: must-have recall went from zero to half, with no bad picks. The one
+it still misses ends on a purely visual beat, which is exactly what the LLM judge is for."
 
 ## 2:10 – 2:45 · It learns from the editor
 

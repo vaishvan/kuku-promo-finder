@@ -37,7 +37,7 @@ def _row(ctx, segs):
             "view": view, "judge": None, "schema": SCHEMA}
 
 
-def featurize(scripts_dir, judge, prefilters, top_n=200, per_ep=4, aliases=None, allow_mixed_judge=False, stitch_n=30, log=print, progress=None):
+def featurize(scripts_dir, judge, prefilters, top_n=200, per_ep=4, aliases=None, allow_mixed_judge=False, stitch_n=30, reserve_endings="all", log=print, progress=None):
     """prefilters: list of Models. The judged pool is the UNION of each model's picks, so a challenger is not
     limited to what the champion liked (fix C5)."""
     t0 = time.time()
@@ -80,7 +80,20 @@ def featurize(scripts_dir, judge, prefilters, top_n=200, per_ep=4, aliases=None,
             if count.get(e, 0) < per_ep and not any(overlaps(r["segments"], k["segments"]) for k in kept if k["segments"][0][0] == e):
                 count[e] = count.get(e, 0) + 1
                 kept.append(r)
-        for r in kept[:top_n] + sorted((r for r in st if not r["safety"]), key=neutral, reverse=True)[:stitch_n]:
+        # Reserve episode endings (fix from the eval: both held-out must-haves were endings that a pure top-N
+        # shortlist dropped). Each episode's best window that ends on the episode's last line competes in its own
+        # bucket; `reserve_endings` of them (by score) are always judged, "all" keeps every episode's.
+        endings = {}
+        for r in rows:
+            last = r["segments"][-1]
+            if r["safety"] or len(r["segments"]) != 1 or abs(last[2] - r["view"]["ep_ends"][-1]) > 0.01:
+                continue
+            e = last[0]
+            if neutral(r) > -1 and (e not in endings or neutral(r) > neutral(endings[e])):
+                endings[e] = r
+        ranked_end = sorted(endings.values(), key=neutral, reverse=True)
+        n_res = len(ranked_end) if reserve_endings == "all" else int(reserve_endings or 0)
+        for r in ranked_end[:n_res] + kept[:top_n] + sorted((r for r in st if not r["safety"]), key=neutral, reverse=True)[:stitch_n]:
             pool[r["id"]] = r
     kept = list(pool.values())
     log(f"prefilter ({', '.join(m.version for m in prefilters)}) -> {len(kept)} candidates for the judge")

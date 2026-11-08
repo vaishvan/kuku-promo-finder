@@ -19,10 +19,14 @@ MIN_PART = 0.1  # a promo needs BOTH some hook and some payoff; below this on ei
 # resolution -1.0 because a resolved ending is the opposite of a cliffhanger; judge weights 1.5 assume an LLM judge
 # is more reliable than lexicons (unvalidated until editor labels exist); ep_pos -0.3 is a mild spoiler prior.
 # Retraining moves these from feedback; they are the starting point, not a claim.
+# cliff_proximity 2.5 (was 0.3): chosen from {0.3, 0.8, 1.5, 2.5, 4.0} on TRAIN-block validation gold only
+# (ep 1-30; train NDCG@10 0.12 -> 0.31). This show ends every episode on a cliffhanger; the music-cue bug (B1) that
+# made endings look good regardless of content is gone, so proximity is allowed to matter again. Held-out was
+# looked at once afterwards: NDCG@10 0.14 -> 0.21, must-recall 0 -> 0.5, 0 known-bad picks.
 # cliff_proximity is now a weak prior only: ending at the episode end is not the same as ending unresolved (B1).
 PRIOR = {
     "bias": -4.0,
-    "w": {"dur_fit": 0.5, "hook_arousal": 1.0, "hook_dialogue": 0.5, "clean_entry": 0.5, "cliff_proximity": 0.3,
+    "w": {"dur_fit": 0.5, "hook_arousal": 1.0, "hook_dialogue": 0.5, "clean_entry": 0.5, "cliff_proximity": 2.5,
           "cliff_content": 1.0, "cliff_open_end": 0.8, "resolution": -1.0, "conflict_density": 0.8,
           "emotion_intensity": 0.6, "speech_ratio": 0.3, "turn_rate": 0.2, "standalone": 1.0, "ep_pos": -0.3,
           "n_segments": -0.4, "cross_ep": -0.6, "j_hook": 1.5, "j_cliff": 1.5, "j_standalone": 1.0, "j_emotion": 0.8,

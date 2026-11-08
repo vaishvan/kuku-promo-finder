@@ -24,7 +24,9 @@ HERE = os.path.dirname(__file__)
 DEMO_FEEDBACK = "runs/feedback.demo.jsonl"
 UPLOADS = "runs/uploads"
 MAX_UPLOAD = 100 * 1024 * 1024
-LLM_BUDGET = {"top_n": 25, "stitch_n": 2, "pairwise_top": int(os.environ.get("PROMO_PAIRWISE_TOP", 4))}  # <=39 requests; free tier = 50/day
+# Free tier = 50 requests/day: 10 best clips + 30 reserved episode endings + 2 stitches (~42, fewer after overlap and
+# cache) + pairwise on the top 4 (12). New calls are capped at the remaining quota anyway; cached clips are free.
+LLM_BUDGET = {"top_n": 10, "reserve_endings": 30, "stitch_n": 2, "pairwise_top": int(os.environ.get("PROMO_PAIRWISE_TOP", 4))}
 LOCK = threading.Lock()
 
 
@@ -70,7 +72,7 @@ def budget():
     load_env()
     key, base = os.environ.get("JUDGE_API_KEY"), os.environ.get("JUDGE_BASE_URL", "")
     info = {"model": os.environ.get("JUDGE_MODEL"), "llm_available": bool(key and os.environ.get("JUDGE_MODEL")),
-            "max_calls": LLM_BUDGET["top_n"] + LLM_BUDGET["stitch_n"] + LLM_BUDGET["pairwise_top"] * (LLM_BUDGET["pairwise_top"] - 1)}
+            "max_calls": LLM_BUDGET["top_n"] + LLM_BUDGET["reserve_endings"] + LLM_BUDGET["stitch_n"] + LLM_BUDGET["pairwise_top"] * (LLM_BUDGET["pairwise_top"] - 1)}
     if key and "openrouter.ai" in base:
         try:
             req = urllib.request.Request(base.rstrip("/") + "/key", headers={"Authorization": f"Bearer {key}"})
@@ -92,7 +94,7 @@ def run_job(scripts_dir, out, offline, k):
                 JOB.log(f"{left} free requests left today; new judgements capped at {judge.max_new}, cached ones are free")
         model = M.load()
         prefilters = [M.load("v0000")] + ([model] if model.version != "v0000" else [])
-        params = LLM_BUDGET if not offline else {"top_n": 200, "stitch_n": 30, "pairwise_top": 0}
+        params = LLM_BUDGET if not offline else {"top_n": 200, "reserve_endings": "all", "stitch_n": 30, "pairwise_top": 0}
         JOB.log(f"judge: {judge.name}")
 
         def on_judged(i, n, by):
@@ -101,7 +103,8 @@ def run_job(scripts_dir, out, offline, k):
             st["step"] = f"judging clip {i}/{n} with {judge.name}" + (f" ({st['cached']} from cache)" if st["cached"] else "")
 
         rows, ctx, stats = P.featurize(scripts_dir, judge, prefilters, top_n=params["top_n"], aliases="auto",
-                                       stitch_n=params["stitch_n"], log=JOB.log, progress=on_judged)
+                                       stitch_n=params["stitch_n"], reserve_endings=params["reserve_endings"],
+                                       log=JOB.log, progress=on_judged)
         P.save_rows(rows, os.path.join(out, "rows.jsonl"))
         promos = P.rank(rows, model, k=k)
         if params["pairwise_top"] and hasattr(judge, "compare"):

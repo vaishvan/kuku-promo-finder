@@ -6,7 +6,7 @@
   "hook_arousal": 1.0,
   "hook_dialogue": 0.5,
   "clean_entry": 0.5,
-  "cliff_proximity": 0.3,
+  "cliff_proximity": 2.5,
   "cliff_content": 1.0,
   "cliff_open_end": 0.8,
   "resolution": -1.0,
