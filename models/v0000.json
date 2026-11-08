@@ -1,0 +1,28 @@
+{
+ "version": "v0000",
+ "bias": -4.0,
+ "w": {
+  "dur_fit": 0.5,
+  "hook_arousal": 1.0,
+  "hook_dialogue": 0.5,
+  "clean_entry": 0.5,
+  "cliff_proximity": 0.3,
+  "cliff_content": 1.0,
+  "cliff_open_end": 0.8,
+  "resolution": -1.0,
+  "conflict_density": 0.8,
+  "emotion_intensity": 0.6,
+  "speech_ratio": 0.3,
+  "turn_rate": 0.2,
+  "standalone": 1.0,
+  "ep_pos": -0.3,
+  "n_segments": -0.4,
+  "cross_ep": -0.6,
+  "j_hook": 1.5,
+  "j_cliff": 1.5,
+  "j_standalone": 1.0,
+  "j_emotion": 0.8,
+  "hook_and_payoff": 2.0
+ },
+ "meta": {}
+}

@@ -1,0 +1,64 @@
+{"id": "g1h", "segments": [[1, 1.0, 54.6]], "tier": "must", "position": "head", "labeller": "builder", "note": "altar betrayal: 'You should turn around, Juliana'", "split": "val"}
+{"id": "g3t", "segments": [[3, 90.4, 145.75]], "tier": "must", "position": "tail", "labeller": "builder", "note": "stranger stops the guards, kneels with a ring", "split": "test"}
+{"id": "g11t", "segments": [[11, 58.0, 112.75]], "tier": "must", "position": "tail", "labeller": "builder", "note": "planted watch found in his coat", "split": "val"}
+{"id": "g12t", "segments": [[12, 56.8, 87.21000000000001]], "tier": "must", "position": "tail", "labeller": "builder", "note": "sister's thorn-garden ultimatum: crawl or he hangs", "split": "val"}
+{"id": "g13t", "segments": [[13, 71.4, 118.88]], "tier": "must", "position": "tail", "labeller": "builder", "note": "bare-handed crawl through blackthorn for the ring", "split": "val"}
+{"id": "g15t", "segments": [[15, 41.0, 86.0]], "tier": "must", "position": "tail", "labeller": "builder", "note": "thugs trample the garden, husband charges in", "split": "test"}
+{"id": "g23t", "segments": [[23, 79.0, 131.5]], "tier": "must", "position": "tail", "labeller": "builder", "note": "arsenic realised, footsteps at the door", "split": "val"}
+{"id": "g26t", "segments": [[26, 87.0, 120.88]], "tier": "must", "position": "tail", "labeller": "builder", "note": "Duchess recognises the family ring", "split": "val"}
+{"id": "g32t", "segments": [[32, 107.2, 154.38]], "tier": "must", "position": "tail", "labeller": "builder", "note": "branding iron stops at her eye", "split": "test"}
+{"id": "g36t", "segments": [[36, 146.5, 200.75]], "tier": "must", "position": "tail", "labeller": "builder", "note": "'their dead Duke is coming home'", "split": "test"}
+{"id": "g41t", "segments": [[41, 54.8, 96.09]], "tier": "must", "position": "tail", "labeller": "builder", "note": "wedding, chained bride, cathedral explodes", "split": "val"}
+{"id": "g45t", "segments": [[45, 81.5, 121.75]], "tier": "must", "position": "tail", "labeller": "builder", "note": "freed and crowned, then marriage declared void", "split": "val"}
+{"id": "g1t", "segments": [[1, 79.0, 138.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "father's silence, 'plainness and low value'", "split": "val"}
+{"id": "g2t", "segments": [[2, 56.8, 110.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "'what your word is worth' public dignity", "split": "test"}
+{"id": "g4t", "segments": [[4, 107.8, 151.4]], "tier": "good", "position": "tail", "labeller": "builder", "note": "accepts the vow, disowned, walks out", "split": "val"}
+{"id": "g5t", "segments": [[5, 65.5, 110.5]], "tier": "good", "position": "tail", "labeller": "builder", "note": "mother's ledger thrown in the mud", "split": "val"}
+{"id": "g9t", "segments": [[9, 77.6, 115.5]], "tier": "good", "position": "tail", "labeller": "builder", "note": "village rumour of a scarred soldier-Duke", "split": "val"}
+{"id": "g18h", "segments": [[18, 3.5, 58.5]], "tier": "good", "position": "head", "labeller": "builder", "note": "fire wakes them, escape through the window", "split": "val"}
+{"id": "g21t", "segments": [[21, 70.5, 114.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "'she is dying' - Duchess poisoned", "split": "val"}
+{"id": "g22t", "segments": [[22, 91.5, 131.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "maid disguise, not ordinary fever", "split": "val"}
+{"id": "g27t", "segments": [[27, 108.3, 150.5]], "tier": "good", "position": "tail", "labeller": "builder", "note": "framed for poisoning, dragged away", "split": "val"}
+{"id": "g28t", "segments": [[28, 95.2, 138.5]], "tier": "good", "position": "tail", "labeller": "builder", "note": "mother's ledger seized, witch accusation", "split": "val"}
+{"id": "g31t", "segments": [[31, 118.4, 160.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "dungeon taunts, iron near the ledger", "split": "val"}
+{"id": "g34t", "segments": [[34, 151.8, 190.0]], "tier": "good", "position": "tail", "labeller": "builder", "note": "trial, judge raises his hand", "split": "val"}
+{"id": "g35t", "segments": [[35, 114.0, 157.5]], "tier": "good", "position": "tail", "labeller": "builder", "note": "mother finds the 'dead' son", "split": "val"}
+{"id": "g42t", "segments": [[42, 23.5, 77.8]], "tier": "good", "position": "tail", "labeller": "builder", "note": "Duke walks in, guards refuse Rupert", "split": "test"}
+{"id": "g43t", "segments": [[43, 71.4, 114.96000000000001]], "tier": "good", "position": "tail", "labeller": "builder", "note": "Crown names the traitors, Sterling blocked", "split": "test"}
+{"id": "g46t", "segments": [[46, 107.0, 143.88]], "tier": "good", "position": "tail", "labeller": "builder", "note": "ten-day ruling, 'ten days is plenty'", "split": "val"}
+{"id": "g6t", "segments": [[6, 70.1, 115.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "quiet cottage, resolved and cosy", "split": "val"}
+{"id": "g7t", "segments": [[7, 81.5, 116.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "villains flee, resolved", "split": "val"}
+{"id": "g8t", "segments": [[8, 33.2, 78.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "herb chat, no conflict", "split": "val"}
+{"id": "g16t", "segments": [[16, 48.8, 83.19]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "fight over, gaze, resolved", "split": "val"}
+{"id": "g17t", "segments": [[17, 77.0, 118.88]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "tender hearth scene, resolved", "split": "val"}
+{"id": "g19t", "segments": [[19, 81.5, 119.63]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "barn blanket, 'we begin again'", "split": "test"}
+{"id": "g20t", "segments": [[20, 76.3, 114.75]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "villains over tea, no stakes on screen", "split": "val"}
+{"id": "g25t", "segments": [[25, 121.0, 168.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "talky exposition walk", "split": "val"}
+{"id": "g37t", "segments": [[37, 117.2, 156.47]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "invitations and gossip", "split": "val"}
+{"id": "g38t", "segments": [[38, 48.5, 87.91]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "bread, bells, resolved prayer", "split": "test"}
+{"id": "g39t", "segments": [[39, 62.0, 98.41]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "preparation, no payoff yet", "split": "val"}
+{"id": "g40t", "segments": [[40, 66.9, 110.08]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "guests arriving, gossip", "split": "val"}
+{"id": "g47t", "segments": [[47, 96.0, 134.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "apron accepted, resolved", "split": "test"}
+{"id": "g48t", "segments": [[48, 43.3, 80.0]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "scheming in a bedroom, needs context", "split": "test"}
+{"id": "g49t", "segments": [[49, 91.6, 144.75]], "tier": "bad", "position": "tail", "labeller": "builder", "note": "secret alliance, needs context, suggestive", "split": "val"}
+{"id": "g50h", "segments": [[50, 0.0, 59.2]], "tier": "bad", "position": "head", "labeller": "builder", "note": "sexual content, ad-policy risk", "split": "val"}
+{"id": "g3r", "segments": [[3, 66.0, 109.0]], "tier": "must", "position": "mid", "labeller": "builder", "note": "stranger walks in: 'Take your hands off her', drops a guard", "split": "val"}
+{"id": "g5r", "segments": [[5, 33.8, 74.5]], "tier": "good", "position": "mid", "labeller": "builder", "note": "disowned on the steps, ledger flung into the mud", "split": "val"}
+{"id": "g11h", "segments": [[11, 2.0, 51.0]], "tier": "must", "position": "head", "labeller": "builder", "note": "accused of stealing the gold watch, constable arrives", "split": "val"}
+{"id": "g13h", "segments": [[13, 5.1, 49.2]], "tier": "good", "position": "head", "labeller": "builder", "note": "chained husband begs her not to crawl into the thorns", "split": "val"}
+{"id": "g16h", "segments": [[16, 0.0, 50.0]], "tier": "good", "position": "head", "labeller": "builder", "note": "thug swings, husband catches the club bare-handed", "split": "val"}
+{"id": "g24h", "segments": [[24, 4.0, 51.5]], "tier": "must", "position": "head", "labeller": "builder", "note": "noblewoman strikes the 'maid' with a riding crop", "split": "test"}
+{"id": "g27r", "segments": [[27, 26.6, 77.8]], "tier": "good", "position": "mid", "labeller": "builder", "note": "'what is your husband's name?' - doors burst open", "split": "val"}
+{"id": "g28h", "segments": [[28, 0.0, 53.6]], "tier": "good", "position": "head", "labeller": "builder", "note": "framed, locket ripped off, identity exposed", "split": "val"}
+{"id": "g33r", "segments": [[33, 81.0, 140.0]], "tier": "good", "position": "mid", "labeller": "builder", "note": "lord coerces the maid into false testimony", "split": "test"}
+{"id": "g36r", "segments": [[36, 60.9, 119.3]], "tier": "good", "position": "mid", "labeller": "builder", "note": "mother reveals: arrested, called a witch, condemned", "split": "val"}
+{"id": "g42h", "segments": [[42, 1.0, 42.5]], "tier": "must", "position": "head", "labeller": "builder", "note": "'Who are you?' 'You already know.' Guards refuse", "split": "test"}
+{"id": "g46h", "segments": [[46, 0.0, 52.2]], "tier": "good", "position": "head", "labeller": "builder", "note": "priest seals the chapel, marriage called a hedge ceremony", "split": "val"}
+{"id": "g6r", "segments": [[6, 40.7, 93.6]], "tier": "bad", "position": "mid", "labeller": "builder", "note": "cleaning the cottage, quiet", "split": "val"}
+{"id": "g8h", "segments": [[8, 0.0, 44.9]], "tier": "bad", "position": "head", "labeller": "builder", "note": "herb identification chat", "split": "test"}
+{"id": "g19r", "segments": [[19, 47.1, 88.9]], "tier": "bad", "position": "mid", "labeller": "builder", "note": "spy briefing, needs context", "split": "val"}
+{"id": "g20h", "segments": [[20, 2.9, 52.5]], "tier": "bad", "position": "head", "labeller": "builder", "note": "villains discuss sugar and succession over tea", "split": "test"}
+{"id": "g25h", "segments": [[25, 0.6, 46.4]], "tier": "bad", "position": "head", "labeller": "builder", "note": "slow walk, 'why are you walking like that?'", "split": "val"}
+{"id": "g35r", "segments": [[35, 68.5, 118.0]], "tier": "bad", "position": "mid", "labeller": "builder", "note": "war-mission exposition over a map", "split": "test"}
+{"id": "g37h", "segments": [[37, 6.0, 39.8]], "tier": "bad", "position": "head", "labeller": "builder", "note": "invitations laid on a tray", "split": "test"}
+{"id": "g40h", "segments": [[40, 5.5, 39.0]], "tier": "bad", "position": "head", "labeller": "builder", "note": "guests arrive, gossip on the steps", "split": "test"}

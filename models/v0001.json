@@ -1,0 +1,32 @@
+{
+ "version": "v0001",
+ "bias": -7.045347141205098,
+ "w": {
+  "dur_fit": 0.2616218920964918,
+  "hook_arousal": 0.9977543112272286,
+  "hook_dialogue": 0.43485685572322086,
+  "clean_entry": 0.4743963936925224,
+  "cliff_proximity": 0.4167353651080377,
+  "cliff_content": 0.7138226410987984,
+  "cliff_open_end": 0.3615948685876329,
+  "resolution": -1.204098621304441,
+  "conflict_density": 0.7284160879100461,
+  "emotion_intensity": 0.9796230317354611,
+  "speech_ratio": 0.2115213027715088,
+  "turn_rate": 0.08540271501772173,
+  "standalone": 0.9222589897900594,
+  "ep_pos": -0.3,
+  "n_segments": -0.4,
+  "cross_ep": -0.6,
+  "j_hook": 1.4674284278616094,
+  "j_cliff": 1.4674284278616094,
+  "j_standalone": 0.9674284278616098,
+  "j_emotion": 0.7674284278616103,
+  "hook_and_payoff": 1.946887208386279
+ },
+ "meta": {
+  "parent": "v0000",
+  "note": "23 labels (0 same-episode pairs -> pointwise loss); cv auc by l2 {0.1:0.28, 1:0.33, 10:0.78, 100:0.78, 1000:0.78} -> l2=10; champion auc on labels 0.61",
+  "gate": "challenger not better on held-out validation gold"
+ }
+}
