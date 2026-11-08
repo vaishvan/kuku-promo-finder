@@ -352,14 +352,15 @@ class _Server(ThreadingHTTPServer):
         super().server_bind()
 
 
-def serve(out=None, port=8765, scripts="data/scripts"):
+def serve(out=None, port=8765, scripts="data/scripts", host="127.0.0.1"):
+    """Local by default. A hosted deploy passes --host 0.0.0.0 (and its platform's port)."""
     H.out, H.scripts = out, scripts
     try:
-        srv = _Server(("127.0.0.1", port), H)
+        srv = _Server((host, port), H)
     except OSError:
         raise SystemExit(f"Port {port} is already in use: the demo is probably already running (open "
                          f"http://127.0.0.1:{port}), or stop it first. To run a second copy, use --port.")
-    print(f"Promo Finder demo on http://127.0.0.1:{port}  (Ctrl+C to stop)")
+    print(f"Promo Finder demo on http://{host}:{port}  (Ctrl+C to stop)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
