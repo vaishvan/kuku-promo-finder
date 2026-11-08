@@ -1,0 +1,13 @@
+# Render blueprint: free web service built from the Dockerfile.
+# The only secret, JUDGE_API_KEY, is entered in Render's dashboard at deploy time (sync: false = never in git).
+services:
+  - type: web
+    name: promo-finder
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: JUDGE_API_KEY
+        sync: false
