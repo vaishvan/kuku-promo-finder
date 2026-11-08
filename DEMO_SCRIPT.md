@@ -13,14 +13,10 @@ python -m promofinder serve             # http://127.0.0.1:8765
 ```
 
 - Have the scripts zip ready in a file explorer window next to the browser (drag-and-drop looks best on camera).
-- **Once, before recording day** (needs a fresh daily quota): upload the zip and click "Run with LLM judge" so the
-  new shortlist (episode endings included) gets judged and cached, about 47 requests. On camera the same upload then
-  replays from cache in about 25 seconds, for free. Until then, use "Run offline".
-- Browser zoom 100–110%, close other tabs. The header shows how many free LLM requests are left today.
-- Every clip the judge has already scored is cached, so uploading the same zip again costs nothing and runs in
-  about 20 seconds. A different zip spends real requests: about 27 for scoring plus up to 12 for pairwise
-  re-ranking (skipped automatically if the day's quota is too low). Record on a day with 15+ requests left if you
-  want to show a fresh judgement, or just re-run the cached one.
+- The page starts empty every time the server starts; results appear only after you upload and run.
+- **Once before recording**: upload the zip and click "Run with LLM judge" (NVIDIA free tier, about 5 minutes for
+  ~200 clips). Every judgement is cached, so on camera the same upload replays in about 25 seconds. If the judge
+  can't run (bad key, model down), the page says so in plain words and offers "Run offline instead".
 
 ---
 
@@ -40,8 +36,9 @@ pipeline block as the steps tick]
 "I drop in the scripts zip exactly as Kuku sent it. It's extracted on my machine, only the text files. Code does
 everything that has to be exact: it parses every scene into timed lines and generates about fifteen thousand
 candidate cuts of 20 to 60 seconds, always on a real line, never mid-sentence. Cheap code features shortlist about
-25, and only those clips are sent to an LLM judge, which scores hook, cliffhanger and standalone. A free OpenRouter
-model, cached, so a re-run costs nothing; swapping the model is one line in a config file."
+200, including every episode's ending, and only those clips go to an LLM judge, which scores hook, cliffhanger
+and standalone. It's NVIDIA's free Nemotron, cached, so a re-run costs nothing; swapping the model is one line in a
+config file."
 
 [Results appear. Click Script on the #1 card]
 
@@ -82,7 +79,7 @@ the gate is only as good as its labels."
 
 [Back to Promos]
 
-"At scale, the expensive step is bounded: about 40 judge calls per 50-episode show, all cached. I built this with
+"At scale, the expensive step is bounded: about 270 judge calls per 50-episode show, five minutes, zero dollars, all cached. I built this with
 Claude, and it got things wrong that I had to catch: its first cliffhanger feature fired on 37 of 50 episode
 endings just because every episode ends on a music sting, so its first 'improvement' was an artifact. A quality
 review found 64 problems; the critical and high ones are fixed and documented."

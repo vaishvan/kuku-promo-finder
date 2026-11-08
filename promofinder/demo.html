@@ -79,19 +79,17 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
 </head>
 <body>
 <header><div class="wrap">
-  <div class="logo">Promo <i>Finder</i></div><span class="eyebrow">Kuku · Problem 1</span>
+  <div class="logo">Promo <i>Finder</i></div>
   <div class="sp"></div><span class="status" id="budget">checking model…</span>
 </div></header>
 
 <div class="wrap">
   <section class="block lilac">
-    <div class="eyebrow" style="color:#000">Step 1 · Upload</div>
     <h1 class="display">Find the promos hiding in a microdrama.</h1>
-    <p class="sub">Drop the screenplay zip. It's extracted on this machine, every 20–60 second cut is scored, and the
-      shortlist goes to an LLM judge for hook, cliffhanger and standalone.</p>
+    <p class="sub">Drop the scripts zip. Every 20–60 second cut is scored, and the best go to an LLM judge.</p>
     <label class="drop" id="drop">
       <span class="ic">↥</span>
-      <span class="t"><b id="dropTitle">Drop the scripts .zip here</b><div id="dropSub">or click to choose a file · only .txt scripts are read · nothing leaves your machine except the shortlisted clips sent to the judge</div></span>
+      <span class="t"><b id="dropTitle">Drop the scripts .zip here</b><div id="dropSub">or click to choose a file</div></span>
       <span class="pill sec">Choose zip</span>
       <input type="file" id="file" accept=".zip" hidden>
     </label>
@@ -99,19 +97,18 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
     <div class="actions">
       <button class="pill mag" id="runLlm" disabled>Run with LLM judge</button>
       <button class="pill sec" id="runOff" disabled>Run offline (no API)</button>
-      <span class="eyebrow" style="color:#000" id="budgetNote"></span>
     </div>
   </section>
 
   <section class="block cream" id="progress" hidden>
-    <div class="eyebrow" style="color:#000">Step 2 · Pipeline</div>
     <h2 id="stepTitle">Waiting to start</h2>
+    <div id="errBox" hidden><p id="errMsg" style="font-size:18px;margin:8px 0 16px"></p><div class="actions" style="margin-top:0" id="errActions"></div></div>
     <ul class="steps" id="steps"></ul>
     <div class="bar"><i id="barFill"></i></div>
     <div class="log" id="log"></div>
   </section>
 
-  <div id="results">
+  <div id="results" hidden>
     <div class="tabs" id="tabs"><button data-t="promos" class="on">Promos</button><button data-t="plan">Posting plan</button><button data-t="eval">Evaluation</button><button data-t="learn">Learning loop</button></div>
     <div id="main"></div>
   </div>
@@ -123,41 +120,45 @@ let S=null, tab="promos", J={}, poll=null;
 const $=s=>document.querySelector(s), esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",4000)};
 async function api(path,body,raw){const opt=body===undefined?{}:{method:"POST",headers:raw?{"X-Filename":raw}:{"Content-Type":"application/json"},body:raw?body:JSON.stringify(body)};
- const r=await fetch(path,opt);const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j}
+ let r;try{r=await fetch(path,opt)}catch(e){throw new Error("Can't reach the demo server. Is it still running?")}
+ let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||`Request failed (${r.status}).`);return j}
 
 async function budget(){try{const b=await api("/api/budget");const fr=b.free_requests;
- $("#budget").textContent=b.llm_available?`${(b.model||"").split("/").pop()} · ${fr?fr.remaining+" free req left today":"key set"}`:"offline judge only";
- $("#budgetNote").textContent=b.llm_available?`LLM run ≤ ${b.max_calls} requests · clips already judged are free (cache)`:"no API key in .env";
- $("#runLlm").dataset.ok=b.llm_available?"1":""}catch(e){$("#budget").textContent="model status unavailable"}}
+ $("#budget").textContent=b.llm_available?`${b.provider||"LLM"} · ${(b.model||"").split("/").pop()}${fr?` · ${fr.remaining} left today`:""}`:"no LLM key · offline only";
+ $("#runLlm").dataset.ok=b.llm_available?"1":"";if(!b.llm_available)$("#runLlm").disabled=true}catch(e){$("#budget").textContent="LLM status unavailable"}}
 
 async function upload(file){if(!file)return;if(!/\.zip$/i.test(file.name)){toast("please choose a .zip");return}
  $("#dropTitle").textContent=`Uploading ${file.name}…`;
  try{const r=await api("/api/upload",file,file.name);
   $("#dropTitle").textContent=`${file.name} · ${r.files.length} scripts extracted`;
-  $("#dropSub").textContent=r.skipped.length?`skipped ${r.skipped.length} non-script files`:"ready to run";
+  $("#dropSub").textContent=r.skipped.length?`${r.skipped.length} non-script files ignored`:"ready to run";
   $("#files").innerHTML=r.files.slice(0,8).map(f=>`<span class="chip">${esc(f)}</span>`).join("")+(r.files.length>8?`<span class="chip">+${r.files.length-8} more</span>`:"");
   $("#runLlm").disabled=!$("#runLlm").dataset.ok;$("#runOff").disabled=false;showProgress();await refreshJob()}
- catch(e){$("#dropTitle").textContent="Drop the scripts .zip here";toast(e.message)}}
+ catch(e){$("#dropTitle").textContent="Drop the scripts .zip here";$("#dropSub").textContent=e.message;toast(e.message)}}
 
 const STEPS=[["Upload",j=>!!j.upload],["Extract",j=>j.log?.some(l=>l.includes("extracted"))],["Parse",j=>j.log?.some(l=>l.includes("parsed"))],
  ["Candidates",j=>j.log?.some(l=>l.includes("stitched"))],["Shortlist",j=>j.log?.some(l=>l.includes("prefilter"))],
  ["LLM judge",j=>j.to_judge>0&&j.judged>=j.to_judge],["Pairwise",j=>j.pairs_total>0?j.pairs>=j.pairs_total:j.status==="done"],["Rank & plan",j=>j.status==="done"]];
 function showProgress(){$("#progress").hidden=false}
-function renderJob(){const j=J;if(!j.status||j.status==="idle")return;showProgress();
+function renderErr(j){const box=$("#errBox");if(j.status!=="error"){box.hidden=true;return}box.hidden=false;$("#errMsg").textContent=j.error||"The run stopped.";
+ const a=[];if(j.fix==="offline")a.push(`<button class="pill" onclick="start(true)">Run offline instead</button>`);
+ if(j.fix==="upload")a.push(`<button class="pill" onclick="document.getElementById('file').click()">Choose another zip</button>`);
+ a.push(`<button class="pill sec" onclick="start(false)">Try again</button>`);$("#errActions").innerHTML=a.join("")}
+function renderJob(){const j=J;if(!j.status||j.status==="idle")return;showProgress();renderErr(j);
  let cur=STEPS.findIndex(([_,f])=>!f(j));if(cur<0)cur=STEPS.length;
  $("#steps").innerHTML=STEPS.map(([n],i)=>`<li class="${i<cur?"ok":i===cur&&j.status==="running"?"on":""}"><div class="n">0${i+1}</div>${n}</li>`).join("");
- $("#stepTitle").textContent=j.status==="error"?`Failed: ${j.error}`:j.status==="done"?"Done. Results below.":j.step||"Ready to run";
+ $("#stepTitle").textContent=j.status==="error"?"Run stopped":j.status==="done"?"Done":j.step||"Ready to run";
  const pct=j.status==="done"?100:j.to_judge?Math.round(100*(j.judged+(j.pairs||0))/(j.to_judge+(j.pairs_total||0)||1)):Math.min(30,cur*6);
  $("#barFill").style.width=pct+"%";const L=$("#log");L.textContent=(j.log||[]).join("\n");L.scrollTop=L.scrollHeight}
 async function refreshJob(){J=await api("/api/job");renderJob();return J}
 async function start(offline){["#runLlm","#runOff"].forEach(s=>$(s).disabled=true);
  try{await api("/api/start",{offline,k:25});showProgress();$("#progress").scrollIntoView({behavior:"smooth"});
   clearInterval(poll);poll=setInterval(async()=>{const j=await refreshJob();if(j.status!=="running"){clearInterval(poll);
-   if(j.status==="done"){await load();budget();toast("run complete");$("#results").scrollIntoView({behavior:"smooth"})}else toast(j.error||"failed");
+   if(j.status==="done"){await load();budget();$("#results").scrollIntoView({behavior:"smooth"})}
    $("#runOff").disabled=false;$("#runLlm").disabled=!$("#runLlm").dataset.ok}},1000)}
  catch(e){toast(e.message);$("#runOff").disabled=false;$("#runLlm").disabled=!$("#runLlm").dataset.ok}}
 
-async function load(){try{S=await api("/api/state")}catch(e){S=null}render()}
+async function load(){try{S=await api("/api/state")}catch(e){S=null}$("#results").hidden=!S;render()}
 const segs=p=>p.segments.map(s=>`<span class="chip">Ep ${s.episode} · ${esc(s.timecode)}</span>`).join("");
 function card(p){const fb=S.feedback[p.id],sc=p.scores||{},pol=p.policy?.label;
  return `<div class="card" id="p${p.rank}"><div class="top"><span class="rank">${p.rank}</span>${segs(p)}<span class="chip">${p.duration}s</span><span class="chip">${esc(p.hook_type)}</span>
@@ -166,17 +167,17 @@ function card(p){const fb=S.feedback[p.id],sc=p.scores||{},pol=p.policy?.label;
  <div class="why">${esc(p.why)}</div>
  ${sc.hook!==undefined?`<div class="scores"><div>Hook<b>${sc.hook}</b></div><div>Cliffhanger<b>${sc.cliffhanger}</b></div><div>Standalone<b>${sc.standalone}</b></div><div>Emotion<b>${sc.emotion}</b></div></div>`:""}
  <div class="row"><button class="pill sm sec acc ${fb===1?"on":""}" onclick="fb('${p.id}','accept')">Accept</button><button class="pill sm sec rej ${fb===0?"on":""}" onclick="fb('${p.id}','reject')">Reject</button>
- <button class="pill sm sec" onclick="this.closest('.card').querySelector('pre').hidden^=1">Script</button><span class="s">${esc(p.band?("band "+p.band+" · "):"")}${esc(p.judge)}${p.pairwise_wins!==undefined?" · pairwise "+p.pairwise_wins:""}</span></div>
+ <button class="pill sm sec" onclick="this.closest('.card').querySelector('pre').hidden^=1">Script</button><span class="s">${p.band?"band "+esc(p.band):""}</span></div>
  <pre hidden>${esc((p.script||[]).join("\n"))}</pre></div>`}
 function render(){document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));const M=$("#main");
  if(!S){M.innerHTML=`<p class="empty">No results yet. Upload a scripts zip and run.</p>`;return}
  const m=S.manifest,st=m.judge_stats||{};
- const head=`<p class="note">${esc(S.promos.length)} promos · judge <b>${esc(m.judge)}</b> · ${st.calls??0} judge calls (${st.cache_hits??0} from cache) · pool ${st.pool??"?"} · ${st.seconds??"?"}s · model weights ${esc(m.model)}</p>`;
+ const head=`<p class="note">${esc(S.promos.length)} promos · ${esc((m.judge||"").replace("llm:","").split("/").pop())} · ${st.pool??"?"} clips judged in ${st.seconds??"?"}s</p>`;
  if(tab==="promos")M.innerHTML=head+`<div class="grid">${S.promos.map(card).join("")}</div>`;
  if(tab==="plan"){const colors=["lime","mint","cream","pink"];M.innerHTML=S.waves.map((w,i)=>`<section class="block ${colors[i%4]} wave"><h2>${esc(w.title)}</h2><p class="note">${esc(w.why)}</p><ol>${w.items.map(r=>{const p=S.promos.find(x=>x.rank===r);return `<li><a href="#p${r}" onclick="tab='promos';render();setTimeout(()=>document.getElementById('p${r}').scrollIntoView({behavior:'smooth'}),60);return false">#${r}</a> ${segs(p)} ${esc(p.hook)}</li>`}).join("")||"<li>none</li>"}</ol></section>`).join("")}
  if(tab==="eval")M.innerHTML=evalView();
- if(tab==="learn")M.innerHTML=`<section class="block lime"><div class="eyebrow" style="color:#000">Learning loop</div><h2>Your Accept / Reject clicks retrain the ranker</h2>
-  <p class="note">${Object.keys(S.feedback).length} demo labels so far. Retrain fits a challenger (episode-blocked cross-validation picks the regularisation); the gate compares it with the champion on held-out labelled episodes using a bootstrap interval. The demo never saves or promotes.</p>
+ if(tab==="learn")M.innerHTML=`<section class="block lime"><h2>Your Accept / Reject clicks retrain the ranker</h2>
+  <p class="note">${Object.keys(S.feedback).length} labels so far. Retraining is a trial: nothing is saved.</p>
   <button class="pill" onclick="retrain(this)">Retrain from my labels</button><div id="rt" style="margin-top:20px"></div></section>`}
 function evalView(){const E=S.eval;if(!E)return `<p class="empty">No evaluation yet. <button class="pill sm" onclick="runEval(this)">Evaluate</button></p>`;
  if(E.no_gold)return `<section class="block coral"><h2>No labels for this show yet</h2><p class="note">Ranking metrics need editor labels. The top ${E.to_label} picks were written to <code>to_label.csv</code> for an editor to mark must / good / bad; after that, evaluation and the promotion gate work for this show.</p></section>`;
@@ -185,7 +186,7 @@ function evalView(){const E=S.eval;if(!E)return `<p class="empty">No evaluation 
  let h=`<section class="block navy"><div class="eyebrow" style="color:#fff">Held-out episodes ${E.split}+ · validation labels · ${esc(E.judge)}</div><h2>How good is it, honestly</h2>
   <div class="kpis"><div>Known-bad picks in top 10<b>${(r.heldout_block["bad_rate@10"]*10).toFixed(0)}</b></div><div>Baseline's bad picks<b>${(b.heldout_block["bad_rate@10"]*10).toFixed(0)}</b></div>
   <div>Top 10 good / bad / unlabelled<b style="font-size:32px">${esc(r.heldout_top10_buckets)}</b></div><div>Missed must-haves<b>${(E.missed_musts_heldout||[]).length}</b></div></div>
-  <p class="note" style="margin-top:20px">Unlabelled picks are unknown, not wrong. They go to to_label.csv for an editor.</p></section>
+  <p class="note" style="margin-top:20px">Unlabelled picks are unknown, not wrong.</p></section>
   <table><tr><th>system</th>${keys.map(k=>`<th>${k}</th>`).join("")}<th>top-10 good / bad / unlabelled</th></tr>`;
  for(const [n,x] of Object.entries(E.systems))h+=`<tr><td>${esc(n)}</td>${keys.map(k=>`<td>${x.heldout_block[k]??"–"}</td>`).join("")}<td>${esc(x.heldout_top10_buckets)}</td></tr>`;
  h+=`</table><h2 style="margin-top:32px">Where it picks badly</h2><table><tr><th>type</th><th>detail</th></tr>`;
@@ -193,7 +194,7 @@ function evalView(){const E=S.eval;if(!E)return `<p class="empty">No evaluation 
  for(const m of E.missed_musts_heldout||[])h+=`<tr><td>missed must-have</td><td>${esc(m.note)} (${esc(m.why_missed)})</td></tr>`;
  return h+`</table><h2 style="margin-top:32px">Cost of this run</h2><pre>${esc(JSON.stringify(E.cost||{},null,1))}</pre><div style="height:48px"></div>`}
 async function runEval(b){b.disabled=true;toast("evaluating…");try{await api("/api/eval",{});await load();tab="eval";render()}catch(e){toast(e.message)}b.disabled=false}
-async function fb(id,d){try{const r=await api("/api/feedback",{id,decision:d});S.feedback[id]=d==="accept"?1:0;render();toast(`${d}ed · ${r.labels} labels`)}catch(e){toast(e.message)}}
+async function fb(id,d){try{await api("/api/feedback",{id,decision:d});S.feedback[id]=d==="accept"?1:0;render()}catch(e){toast(e.message)}}
 async function retrain(b){b.disabled=true;$("#rt").innerHTML=`<p class="note">training…</p>`;try{const r=await api("/api/retrain",{});
  $("#rt").innerHTML=r.promote===undefined?`<p class="note">${esc(r.note)}</p>`:`<h3>${r.promote?"Gate: would promote":"Gate: held back"}</h3><p>${esc(r.reason)}</p><p class="note">${esc(r.note)}</p>
  <table><tr><th></th><th>NDCG@10</th><th>precision@10</th><th>bad-rate@10</th></tr><tr><td>champion</td><td>${r.champion["ndcg@10"]}</td><td>${r.champion["precision@10"]}</td><td>${r.champion["bad_rate@10"]}</td></tr><tr><td>challenger</td><td>${r.challenger["ndcg@10"]}</td><td>${r.challenger["precision@10"]}</td><td>${r.challenger["bad_rate@10"]}</td></tr></table>
@@ -204,7 +205,7 @@ const drop=$("#drop");["dragenter","dragover"].forEach(e=>drop.addEventListener(
 drop.addEventListener("drop",ev=>upload(ev.dataTransfer.files[0]));$("#file").onchange=e=>upload(e.target.files[0]);
 $("#runLlm").onclick=()=>start(false);$("#runOff").onclick=()=>start(true);
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
-budget();load();refreshJob().then(j=>{if(j.status==="running"){showProgress();start.__resume=1;poll=setInterval(async()=>{const k=await refreshJob();if(k.status!=="running"){clearInterval(poll);load()}},1000)}});
+budget();load();refreshJob().then(j=>{if(j.status==="running"){showProgress();poll=setInterval(async()=>{const k=await refreshJob();if(k.status!=="running"){clearInterval(poll);load()}},1000)}}).catch(()=>{});
 </script>
 </body>
 </html>

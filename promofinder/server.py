@@ -10,7 +10,10 @@ import os
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.parse
 import urllib.request
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import evaluate as E
@@ -68,10 +71,12 @@ def state(out, n_eps=None):
 
 
 def budget():
-    """Remaining free-tier requests (OpenRouter only) so the UI can warn before spending them."""
-    load_env()
+    """Which judge is configured (re-read from .env each time) and, for OpenRouter, free requests left today."""
+    load_env(override=True)
     key, base = os.environ.get("JUDGE_API_KEY"), os.environ.get("JUDGE_BASE_URL", "")
-    info = {"model": os.environ.get("JUDGE_MODEL"), "llm_available": bool(key and os.environ.get("JUDGE_MODEL")),
+    host = urllib.parse.urlparse(base).hostname if base else None
+    provider = {"integrate.api.nvidia.com": "NVIDIA", "openrouter.ai": "OpenRouter"}.get(host, host)
+    info = {"model": os.environ.get("JUDGE_MODEL"), "provider": provider, "llm_available": bool(key and os.environ.get("JUDGE_MODEL")),
             "max_calls": LLM_BUDGET["top_n"] + LLM_BUDGET["reserve_endings"] + LLM_BUDGET["stitch_n"] + LLM_BUDGET["pairwise_top"] * (LLM_BUDGET["pairwise_top"] - 1)}
     if key and "openrouter.ai" in base:
         try:
@@ -86,7 +91,7 @@ def budget():
 def run_job(scripts_dir, out, offline, k):
     st = JOB.state
     try:
-        judge = get_judge(offline=offline)
+        judge = get_judge(offline=offline, reload_env=True)
         if hasattr(judge, "max_new"):
             left = (budget().get("free_requests") or {}).get("remaining")
             if left is not None:
@@ -94,7 +99,13 @@ def run_job(scripts_dir, out, offline, k):
                 JOB.log(f"{left} free requests left today; new judgements capped at {judge.max_new}, cached ones are free")
         model = M.load()
         prefilters = [M.load("v0000")] + ([model] if model.version != "v0000" else [])
-        params = LLM_BUDGET if not offline else {"top_n": 200, "reserve_endings": "all", "stitch_n": 30, "pairwise_top": 0}
+        full = {"top_n": 200, "reserve_endings": "all", "stitch_n": 30, "pairwise_top": 0}
+        if offline:
+            params = full
+        elif "openrouter.ai" in os.environ.get("JUDGE_BASE_URL", ""):
+            params = LLM_BUDGET  # 50 requests/day: cut-down shortlist
+        else:
+            params = dict(full, pairwise_top=LLM_BUDGET["pairwise_top"])  # e.g. NVIDIA: rate-limited, not day-capped
         JOB.log(f"judge: {judge.name}")
 
         def on_judged(i, n, by):
@@ -130,15 +141,24 @@ def run_job(scripts_dir, out, offline, k):
         JOB.log(f"done: {len(promos)} promos; {stats.get('calls', 0)} judge calls, {stats.get('cache_hits', 0)} from cache")
         H.out, H.scripts = out, scripts_dir
         st["status"] = "done"
-    except Exception as ex:
+    except P.JudgeUnavailable as ex:
+        st["status"], st["error"], st["fix"] = "error", f"{ex} Nothing was mixed or saved.", "offline"
+        JOB.log(f"stopped: {ex}")
+    except (ValueError, FileNotFoundError) as ex:
+        st["status"], st["error"], st["fix"] = "error", str(ex), "upload"
+        JOB.log(f"stopped: {ex}")
+    except urllib.error.URLError as ex:
+        st["status"], st["error"], st["fix"] = "error", "Couldn't reach the LLM service. Check the internet connection or run offline.", "offline"
+        JOB.log(f"stopped: network error ({ex})")
+    except Exception as ex:  # anything unexpected: plain message in the UI, full trace in the server log
         traceback.print_exc()
-        st["status"], st["error"] = "error", f"{type(ex).__name__}: {ex}"
-        JOB.log(f"failed: {st['error']}")
+        st["status"], st["error"], st["fix"] = "error", f"Something went wrong ({type(ex).__name__}). The details are in the server log.", "retry"
+        JOB.log(f"failed: {type(ex).__name__}: {ex}")
     st["finished"] = time.time()
 
 
 class H(BaseHTTPRequestHandler):
-    out = "runs/live"
+    out = None  # the page starts empty; results appear only after a run in this session (or `serve --show DIR`)
     scripts = "data/scripts"
 
     def _send(self, code, body, ctype="application/json"):
@@ -157,10 +177,12 @@ class H(BaseHTTPRequestHandler):
             with open(os.path.join(HERE, "demo.html"), "rb") as f:
                 return self._send(200, f.read(), "text/html; charset=utf-8")
         if self.path.startswith("/api/state"):
+            if not H.out:
+                return self._send(404, {"error": "no run yet"})
             try:
                 return self._send(200, state(H.out))
-            except FileNotFoundError:
-                return self._send(404, {"error": "no run loaded yet: upload a scripts zip"})
+            except (FileNotFoundError, RuntimeError):
+                return self._send(404, {"error": "no run yet"})
         if self.path.startswith("/api/job"):
             return self._send(200, JOB.state)
         if self.path.startswith("/api/budget"):
@@ -182,20 +204,22 @@ class H(BaseHTTPRequestHandler):
                     return self._send(200, self.retrain())
                 if self.path == "/api/eval":
                     return self._send(200, self.eval())
+        except zipfile.BadZipFile:
+            return self._send(400, {"error": "That file isn't a valid zip."})
         except ValueError as ex:
             return self._send(400, {"error": str(ex)})
         except Exception as ex:
             traceback.print_exc()
-            return self._send(500, {"error": f"{type(ex).__name__}: {ex}"})
+            return self._send(500, {"error": f"Something went wrong ({type(ex).__name__}). The details are in the server log."})
         self._send(404, {"error": "not found"})
 
     def upload(self):
         """Body = raw zip bytes. Saved to a fresh folder, then only .txt members are extracted (see ingest.py)."""
         if JOB.state["status"] == "running":
-            raise ValueError("a run is already in progress")
+            raise ValueError("A run is already in progress.")
         n = int(self.headers.get("Content-Length", 0))
         if not 0 < n <= MAX_UPLOAD:
-            raise ValueError(f"upload must be between 1 byte and {MAX_UPLOAD // 1024 // 1024} MB")
+            raise ValueError(f"The zip must be under {MAX_UPLOAD // 1024 // 1024} MB.")
         job_id = time.strftime("%Y%m%d-%H%M%S")
         base = os.path.join(UPLOADS, job_id)
         os.makedirs(base, exist_ok=True)
@@ -217,16 +241,16 @@ class H(BaseHTTPRequestHandler):
 
     def start(self, body):
         if JOB.state["status"] == "running":
-            raise ValueError("a run is already in progress")
+            raise ValueError("A run is already in progress.")
         up = JOB.state.get("upload") or body.get("upload")
         if not up:
-            raise ValueError("upload a zip first")
+            raise ValueError("Upload a scripts zip first.")
         base = os.path.join(UPLOADS, os.path.basename(up))
         offline = bool(body.get("offline"))
         if not offline:
             b = budget()
             if not b["llm_available"]:
-                raise ValueError("no LLM key configured (.env); run offline instead")
+                raise ValueError("No LLM key is set in .env. Run offline, or add a key and try again.")
             # no blanket refusal: cached clips are free; new calls are capped at today's remaining quota in run_job
         log_so_far = JOB.state["log"]
         JOB.reset(status="running", upload=up, started=time.time(), log=log_so_far)
@@ -269,7 +293,7 @@ class H(BaseHTTPRequestHandler):
         return {"ok": True}
 
 
-def serve(out="runs/live", port=8765, scripts="data/scripts"):
+def serve(out=None, port=8765, scripts="data/scripts"):
     H.out, H.scripts = out, scripts
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     print(f"Promo Finder demo on http://127.0.0.1:{port}  (Ctrl+C to stop)")

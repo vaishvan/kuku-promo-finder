@@ -34,7 +34,7 @@ def extract_scripts(zip_path, dest):
     with zipfile.ZipFile(zip_path) as z:
         members = [i for i in z.infolist() if not i.is_dir()]
         if len(members) > MAX_FILES:
-            raise ValueError(f"zip has {len(members)} files; limit is {MAX_FILES}")
+            raise ValueError(f"That zip has {len(members)} files; the limit is {MAX_FILES}.")
         pending = []
         for info in members:
             base = os.path.basename(info.filename.replace("\\", "/"))
@@ -49,7 +49,7 @@ def extract_scripts(zip_path, dest):
                 continue
             total += info.file_size
             if total > MAX_TOTAL_BYTES:
-                raise ValueError(f"zip expands past {MAX_TOTAL_BYTES // 1024 // 1024} MB")
+                raise ValueError(f"That zip expands past {MAX_TOTAL_BYTES // 1024 // 1024} MB.")
             with z.open(info) as f:
                 data = f.read(MAX_FILE_BYTES + 1)
             if len(data) > MAX_FILE_BYTES:  # header lied about the size
@@ -68,5 +68,5 @@ def extract_scripts(zip_path, dest):
             f.write(text)
         written.append(path)
     if not written:
-        raise ValueError("no .txt scripts found in the zip")
+        raise ValueError("No .txt scripts found in that zip.")
     return written, skipped

@@ -43,15 +43,17 @@ the format in `promofinder/parse.py`, only that file changes.
 
 ### Demo UI
 ```bash
-python -m promofinder serve      # http://127.0.0.1:8765
+python -m promofinder serve                       # http://127.0.0.1:8765, starts empty
+python -m promofinder serve --show runs/live      # or preload an existing run
 ```
 1. **Upload** the scripts `.zip`. It is extracted locally into `runs/uploads/<time>/scripts`: only `.txt` members,
    member paths never used (no zip-slip), size and count limits; episode numbers come from file names, the
    `EPISODE NUMBER:` header, or file order.
 2. **Run** with the LLM judge (or offline). The pipeline block streams progress: parse → candidates → shortlist →
-   LLM judge (with cache hits) → pairwise re-rank → rank and posting plan. The header shows free requests left.
-   Cached clips always run free; new judgements are capped at today's remaining quota, and pairwise is skipped when
-   the quota is too low, so a demo cannot stall halfway.
+   LLM judge (with cache hits) → pairwise re-rank → rank and posting plan. `.env` is re-read on every run, so a new
+   key or model needs no restart. If the judge can't run (rejected key, unavailable model, network, OpenRouter's daily
+   quota), the run stops without mixing scores and the page explains why in plain words with a one-click fix
+   ("Run offline instead", "Choose another zip", "Try again").
 3. **Results:** promo cards (timecodes, handles, opening/ending lines, judge scores and reason, hook type, policy and
    spoiler flags, score band, the script behind the cut), posting plan, evaluation (only when gold labels exist for
    that show), and a learning-loop tab where Accept/Reject clicks retrain a challenger and run the gate.
@@ -62,8 +64,8 @@ blocks). Talk track for a 3-minute recording: [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
 
 ### Using a real LLM judge
 Copy `.env.example` to `.env` (gitignored) and set `JUDGE_API_KEY`. Any OpenAI-compatible endpoint works; the
-default is OpenRouter's free `nvidia/nemotron-3.5-super-vl:free`. Free tier = 50 requests/day, so a live run judges
-a smaller pool: `run --top-n 25 --stitch-n 2 --pairwise-top 4` is about 40 calls. Every judgement is cached in
+default is the NVIDIA API catalog's free `nvidia/nemotron-3.5-super-vl-120b-a12b` with `JUDGE_NO_THINK=1` (thinking
+off; ~1–2 s per call). With OpenRouter's free tier (50 requests/day) the demo automatically uses a cut-down shortlist. Every judgement is cached in
 `runs/judge_cache.jsonl`, so re-runs and demos cost nothing. Swap models by changing `JUDGE_MODEL`.
 
 ## How a clip is scored
@@ -102,19 +104,33 @@ The first LLM run missed both held-out must-haves because a pure top-N shortlist
   camera and action lines.
 - 7 of the top 10 are unlabelled mid-episode picks (`to_label.csv`).
 
-### LLM judge (OpenRouter free tier, `nvidia/nemotron-3.5-super-vl:free`, $0)
+### LLM judge on the full fixed pool (NVIDIA API catalog, `nvidia/nemotron-3.5-super-vl-120b-a12b`, free tier, $0)
 
-- The judged run in `runs/live` predates the shortlist fix: its 27 clips contain no episode endings, so under the new
-  prior it scores NDCG@10 0.07. **It needs re-running with the new shortlist**, which is about 35 new judgements plus
-  12 pairwise comparisons: one day of the 50-request free quota.
-- Free-tier shortlist for the LLM: 10 best clips + 30 reserved endings + 2 stitches. The demo caps new calls at the
-  remaining quota and serves cached clips for free.
-- From the earlier run: 0 retries, 0 fallbacks; the judge's reasons are specific and critical ("Opening accusation
-  is talky, not shocking"; "'dead Duke' relationship confuses newcomers").
+186 clips (every passing episode ending included) + pairwise re-rank of the top 10: 273 calls, 0 retries,
+0 fallbacks, about 5 minutes. Thinking is switched off (`JUDGE_NO_THINK=1`): ~1–2 s per call with valid JSON.
+
+| System (held-out, same 186-clip pool) | P@10 | NDCG@10 | must-recall@10 | top-10 good / bad / unlabelled | recall@20 of good/must endings |
+|---|---|---|---|---|---|
+| last 40 s of every episode | 0.4 | 0.41 | 1.0 | 4 / 1 / 5 | 6/6 |
+| code features only | 0.3 | 0.21 | 0.5 | 3 / 0 / 7 | 4/6 |
+| code features + LLM judge | 0.2 | 0.18 | 0.5 | 2 / 1 / 7 | 5/6 |
+
+- **The judge fixes the failure it was meant to fix.** Ep 41's ending ("silhouetted armed figures emerge through the
+  smoke") scores 0 on the code cliffhanger signal; the judge gives it cliffhanger 9 and it now reaches the top 10.
+- **It also adds one known-bad pick** (Ep 37, invitations and gossip, judged "ends on a villainous wine sip and
+  execution clause"). Net NDCG difference vs code-only is one pick on a 13-item label set: noise.
+- Top picks are the scenes an editor would cut: Ep 32 branding iron and Ep 36 "their dead Duke is coming home" (both
+  must-haves), Ep 15 garden attack, Ep 31 dungeon threat. The judge's reasons are specific and critical ("opening
+  line lacks immediate physical shock"). Both top picks are flagged for ad-policy review (graphic violence), so the
+  posting plan holds them back for a human.
+- Judge weights (1.5 each) are still the hand-set prior; retraining on real editor labels is what would set them.
+- Still missed: Ep 45 (marriage declared void), ranked too low. The episode-end baseline still leads overall.
+
+Earlier OpenRouter run (same model, 50 requests/day): 27-clip shortlist, superseded by this one.
 
 ## Known limits (read before trusting any number)
 1. **Gold and simulated feedback are both written by the builder**; validation gold in the held-out block is 13 items. No inter-annotator check.
-2. **The LLM judge has not yet scored the fixed shortlist** (free-tier quota); its held-out effect is unmeasured. Endings that close on a purely visual beat score 0 on the code cliffhanger signal. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
+2. **The LLM judge does not yet beat code-only on held-out labels** (0.18 vs 0.21 NDCG@10, one pick apart). It does catch visual cliffhangers the code misses. Its weights are an unvalidated prior until editor labels exist. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
 3. **One show.** Generalisation untested. The alias table is per show and hand-written.
 4. **Policy and spoiler labels are word lists**, not a policy-trained classifier; treat "review" as "a human looks", not as a verdict.
 5. **Scores are uncalibrated** (all near 0.99); use the rank.

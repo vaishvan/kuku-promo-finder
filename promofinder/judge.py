@@ -76,6 +76,7 @@ class LLMJudge:
         self.key = os.environ["JUDGE_API_KEY"]
         self.model = os.environ["JUDGE_MODEL"]
         self.name = f"llm:{self.model}"
+        self.mode = "nothink" if os.environ.get("JUDGE_NO_THINK") == "1" else "default"  # part of every cache key
         self.cache_path = cache_path
         self.attempts, self.base_delay = attempts, base_delay
         self.sleep = sleep or time.sleep
@@ -90,8 +91,15 @@ class LLMJudge:
         self.fallback = OfflineJudge()
 
     def _post(self, system, text):
-        payload = {"model": self.model, "temperature": 0,
+        no_think = os.environ.get("JUDGE_NO_THINK") == "1"
+        if no_think:
+            # reasoning models (e.g. Nemotron) otherwise spend the token budget thinking and can return no JSON;
+            # the rubric is a short judgement, so thinking is switched off (~1-2 s per call instead of ~10-30 s)
+            system = "/no_think\n" + system
+        payload = {"model": self.model, "temperature": 0, "max_tokens": int(os.environ.get("JUDGE_MAX_TOKENS", 2048)),
                    "messages": [{"role": "system", "content": system}, {"role": "user", "content": text}]}
+        if no_think:
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
         if os.environ.get("JUDGE_JSON_MODE", "1") == "1":
             payload["response_format"] = {"type": "json_object"}
         body = json.dumps(payload).encode()
@@ -112,6 +120,7 @@ class LLMJudge:
                 return out
             except urllib.error.HTTPError as ex:
                 last = ex
+                self.stats["last_http"] = ex.code
                 if ex.code not in self.RETRY_STATUS:
                     break
             except (urllib.error.URLError, TimeoutError, ValueError, KeyError, TypeError) as ex:
@@ -139,7 +148,7 @@ class LLMJudge:
 
     def __call__(self, view):
         text = render(view)
-        k = hashlib.sha256(f"{RUBRIC_HASH}|{self.model}|{text}".encode()).hexdigest()
+        k = hashlib.sha256((f"{RUBRIC_HASH}|{self.model}|{text}" + ("" if self.mode == "default" else f"|{self.mode}")).encode()).hexdigest()
 
         def parse(d):
             v = {x: float(d[x]) for x in SCORE_KEYS}
@@ -157,7 +166,7 @@ class LLMJudge:
     def compare(self, view_a, view_b):
         """P(clip A is the better promo). Call twice with the order swapped to cancel position bias (fix D3)."""
         text = f"CLIP A\n{render(view_a)[:3000]}\n\nCLIP B\n{render(view_b)[:3000]}"
-        k = hashlib.sha256(f"pair|{RUBRIC_HASH}|{self.model}|{text}".encode()).hexdigest()
+        k = hashlib.sha256((f"pair|{RUBRIC_HASH}|{self.model}|{text}" + ("" if self.mode == "default" else f"|{self.mode}")).encode()).hexdigest()
 
         def parse(d):
             b, c = str(d["better"]).strip().upper(), min(1.0, max(0.5, float(d.get("confidence", 0.75))))
@@ -170,8 +179,9 @@ class LLMJudge:
             return 0.5  # no information
 
 
-def load_env(path=".env"):
-    """Minimal .env reader (KEY=VALUE lines). Never overrides variables already set; the file is gitignored."""
+def load_env(path=".env", override=False):
+    """Minimal .env reader (KEY=VALUE lines; text after an unquoted ' #' is a comment). The file is gitignored.
+    override=True lets a long-running server pick up edits to .env without a restart."""
     if not os.path.exists(path):
         return
     with open(path, encoding="utf-8") as f:
@@ -179,12 +189,13 @@ def load_env(path=".env"):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                if v.strip() and not os.environ.get(k.strip()):
-                    os.environ[k.strip()] = v.strip()
+                v = v.split(" #", 1)[0].strip()
+                if v and (override or not os.environ.get(k.strip())):
+                    os.environ[k.strip()] = v
 
 
-def get_judge(offline=False):
-    load_env()
+def get_judge(offline=False, reload_env=False):
+    load_env(override=reload_env)
     if offline or not (os.environ.get("JUDGE_API_KEY") and os.environ.get("JUDGE_MODEL")):
         return OfflineJudge()
     return LLMJudge(attempts=int(os.environ.get("JUDGE_ATTEMPTS", 2)), base_delay=float(os.environ.get("JUDGE_BACKOFF", 5)))

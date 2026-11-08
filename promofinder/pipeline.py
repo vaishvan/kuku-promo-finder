@@ -13,6 +13,10 @@ from .judge import RUBRIC
 from .model import MIN_PART, Model, real_judge, vec
 from .parse import parse_dir
 
+class JudgeUnavailable(RuntimeError):
+    """Too many clips fell back to the offline judge; the run is stopped rather than mixing two scoring scales."""
+
+
 HANDLE = 0.4  # seconds of pre/post-roll suggested around each cut (fix C3)
 
 
@@ -43,7 +47,7 @@ def featurize(scripts_dir, judge, prefilters, top_n=200, per_ep=4, aliases=None,
     t0 = time.time()
     episodes = parse_dir(scripts_dir)
     if not episodes:
-        raise ValueError(f"no episode-NNN*.txt scripts in {scripts_dir}")
+        raise ValueError("No readable episode scripts were found.")
     if aliases == "auto":
         aliases = auto_aliases(episodes)
     ctx = build_ctx(episodes, aliases)
@@ -109,10 +113,14 @@ def featurize(scripts_dir, judge, prefilters, top_n=200, per_ep=4, aliases=None,
     fallback = sum(1 for r in kept if str(r["judge"].get("by", "")).startswith("offline-fallback"))
     stats["fallback_rows"] = fallback
     if fallback and not judge.name.startswith("offline") and fallback / len(kept) > 0.2 and not allow_mixed_judge:
+        # fix D2: never mix LLM and fallback scores in one ranking
         over = getattr(judge, "stats", {}).get("over_budget", 0)
-        why = (f"{over} clips were not in the cache and today's free requests ran out" if over else "the API kept failing")
-        raise RuntimeError(f"{fallback}/{len(kept)} clips could not be judged by the LLM ({why}); refusing to mix "
-                           "judges (fix D2). Run offline, or retry after the daily reset.")
+        code = getattr(judge, "stats", {}).get("last_http")
+        why = ("today's free requests ran out" if over else
+               "the API key was rejected (check JUDGE_API_KEY in .env)" if code in (401, 403) else
+               "the model isn't available on this account (check JUDGE_MODEL in .env)" if code == 404 else
+               "the model kept failing or timing out")
+        raise JudgeUnavailable(f"The LLM couldn't score {fallback} of {len(kept)} clips: {why}.")
     log(f"judged by {judge.name} in {stats['seconds']}s; fallbacks {fallback}")
     return kept, ctx, stats
 
