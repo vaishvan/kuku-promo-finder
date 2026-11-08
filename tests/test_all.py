@@ -7,7 +7,7 @@ import tempfile
 
 sys.path.insert(0, ".")
 from promofinder import candidates as C, evaluate as E, judge as J, learn as L, model as M, pipeline as P  # noqa: E402
-from promofinder.features import build_ctx, extract  # noqa: E402
+from promofinder.features import build_ctx  # noqa: E402
 from promofinder.parse import parse_dir  # noqa: E402
 
 EPS = parse_dir("data/scripts")
@@ -90,7 +90,7 @@ def test_llm_judge_parse_cache_and_fallback():
         calls = []
         j._post = lambda sys_, t: calls.append(t) or 'sure {not json} then: {"hook": 9, "cliffhanger": 7, "standalone": 4, "emotion": 8, "reason": "slap {x}"}'
         view = {"lines": ["1@01.0 A: hi"], "hook_line": "hi", "cliff_line": "hi", "dur": 25}
-        a, b = j(view), j(view)
+        a, _ = j(view), j(view)
         assert a["hook"] == 9 and a["by"] == "llm:m" and len(calls) == 1  # second call cached
         j2 = J.LLMJudge(os.path.join(d, "c.jsonl"))
         assert j2(view)["hook"] == 9  # cache persists across runs

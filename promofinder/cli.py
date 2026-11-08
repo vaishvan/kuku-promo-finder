@@ -200,7 +200,10 @@ def cmd_retrain(a):
 
 def cmd_promote(a):
     """Human override of the gate (e.g. after reviewing the failure report)."""
-    M.promote(a.version)
+    try:
+        M.promote(a.version)
+    except FileNotFoundError:
+        raise SystemExit(f"no model {a.version}; available: {', '.join(sorted(f[:-5] for f in os.listdir(M.MODELS) if f.startswith('v')))}")
     print("current model ->", a.version)
 
 

@@ -212,7 +212,12 @@ class H(BaseHTTPRequestHandler):
             if self.path == "/api/upload":
                 return self._send(200, self.upload())
             n = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(n) or b"{}")
+            try:
+                body = json.loads(self.rfile.read(n) or b"{}")
+            except json.JSONDecodeError:
+                raise ValueError("Bad request.")
+            if self.path in ("/api/feedback", "/api/retrain", "/api/eval") and not H.out:
+                raise ValueError("Run the pipeline on a scripts zip first.")
             if self.path == "/api/start":
                 return self._send(200, self.start(body))
             with LOCK:
@@ -236,7 +241,9 @@ class H(BaseHTTPRequestHandler):
         if JOB.state["status"] == "running":
             raise ValueError("A run is already in progress.")
         n = int(self.headers.get("Content-Length", 0))
-        if not 0 < n <= MAX_UPLOAD:
+        if n <= 0:
+            raise ValueError("The upload was empty.")
+        if n > MAX_UPLOAD:
             raise ValueError(f"The zip must be under {MAX_UPLOAD // 1024 // 1024} MB.")
         job_id = time.strftime("%Y%m%d-%H%M%S")
         base = os.path.join(UPLOADS, job_id)
@@ -333,11 +340,30 @@ class H(BaseHTTPRequestHandler):
         return {"ok": True}
 
 
+class _Server(ThreadingHTTPServer):
+    """http.server sets SO_REUSEADDR, which on Windows lets a second demo bind the same port and silently share the
+    traffic with an old copy. Bind exclusively instead, so a second start fails loudly."""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        import socket
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def serve(out=None, port=8765, scripts="data/scripts"):
     H.out, H.scripts = out, scripts
-    srv = ThreadingHTTPServer(("127.0.0.1", port), H)
+    try:
+        srv = _Server(("127.0.0.1", port), H)
+    except OSError:
+        raise SystemExit(f"Port {port} is already in use: the demo is probably already running (open "
+                         f"http://127.0.0.1:{port}), or stop it first. To run a second copy, use --port.")
     print(f"Promo Finder demo on http://127.0.0.1:{port}  (Ctrl+C to stop)")
-    srv.serve_forever()
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        print("stopped")
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ python -m promofinder promote v0001                    # human override of the g
 python -m promofinder simulate
 python -m promofinder retrain --feedback runs/feedback.sim.jsonl --min-labels 20
 
-python tests/test_all.py                               # 21 tests (build their own rows offline if needed)
+python tests/test_all.py                               # 22 tests (build their own rows offline if needed)
 ```
 
 Editor sheet rules: `decision` is `accept` or `reject`. A trim (`trim_start`, `trim_end` in seconds) means "cut it
