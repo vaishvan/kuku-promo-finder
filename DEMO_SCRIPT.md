@@ -8,34 +8,41 @@ the prototype, and communication. Spoken lines are in quotes; screen actions are
 
 ```bash
 cd dev/kuku
-rm -f runs/feedback.demo.jsonl                     # start the learning-loop tab clean
-python -m promofinder --out runs/live serve        # LLM-judged run (cached, costs no API calls)
+rm -f runs/feedback.demo.jsonl          # start the learning-loop tab clean
+python -m promofinder serve             # http://127.0.0.1:8765
 ```
 
-- Open http://127.0.0.1:8765, browser zoom 110%, close other tabs.
-- Have a terminal ready in `dev/kuku` for step 5.
-- Do not click "Run with LLM judge" on camera: on a new script it spends free-tier requests (50/day).
+- Have the scripts zip ready in a file explorer window next to the browser (drag-and-drop looks best on camera).
+- Browser zoom 100–110%, close other tabs. The header shows how many free LLM requests are left today.
+- Every clip the judge has already scored is cached, so uploading the same zip again costs nothing and runs in
+  about 20 seconds. A different zip spends real requests: about 27 for scoring plus up to 12 for pairwise
+  re-ranking (skipped automatically if the day's quota is too low). Record on a day with 15+ requests left if you
+  want to show a fresh judgement, or just re-run the cached one.
 
 ---
 
 ## 0:00 – 0:20 · Problem and why
 
-[Promos tab, top of the list]
+[Upload screen, lilac block]
 
 "I picked Problem 1: finding promos in a microdrama script. It's the one problem where the input is the real
 job: today an editor watches every episode by hand, every week. A promo has to open on a hook in 3 seconds, end
 unresolved, and make sense to a stranger. So that's what I built the tool to check."
 
-## 0:20 – 0:55 · How it works
+## 0:20 – 0:55 · Live run: zip in, promos out
 
-[Point at a card's timecodes, then click Script on the #1 card]
+[Drag the zip onto the drop zone. "50 scripts extracted" appears. Click "Run with LLM judge". Talk over the
+pipeline block as the steps tick]
 
-"Code does everything that has to be exact. It parses the screenplay into timed lines, generates about fifteen
-thousand candidate windows of 20 to 60 seconds, and only ever cuts on a real line, never mid-sentence. These are
-the exact script lines behind this cut. Cheap code features filter that down to about 25 candidates, and only
-those go to an LLM judge, scoring hook, cliffhanger and standalone on a rubric. A clip needs both a hook and a
-payoff to rank. Here's the judge's own note on this clip [read the "why" line]. It's a free OpenRouter model:
-this whole run was 39 calls, zero failures, zero dollars, and swapping the model is one line in a config file."
+"I drop in the scripts zip exactly as Kuku sent it. It's extracted on my machine, only the text files. Code does
+everything that has to be exact: it parses every scene into timed lines and generates about fifteen thousand
+candidate cuts of 20 to 60 seconds, always on a real line, never mid-sentence. Cheap code features shortlist about
+25, and only those clips are sent to an LLM judge, which scores hook, cliffhanger and standalone. A free OpenRouter
+model, cached, so a re-run costs nothing; swapping the model is one line in a config file."
+
+[Results appear. Click Script on the #1 card]
+
+"These are the exact script lines behind this cut, and here's the judge's own note on it." [read the "why" line]
 
 ## 0:55 – 1:30 · The output an editor gets
 
@@ -52,10 +59,12 @@ flagged ones for a human."
 [Evaluation tab]
 
 "I hand-labelled regions across all 50 episodes, held out the last 20 episodes, and froze a third of the labels
-as a test set that the gate never sees. Two honest results. First, a dumb baseline, the last 40 seconds of every
-episode, is hard to beat, because the brief defines a promo as ending on a cliffhanger. Second, most of my
-model's top picks are moments I never labelled, so they're unknown, not wrong; the tool writes them to a file for
-an editor to label. It also tells me what it missed: here, the cathedral explosion in episode 41."
+as a test set that the gate never sees. Honest result: on those labels a dumb baseline, the last 40 seconds of
+every episode, beats my model, because this show ends every episode on a cliffhanger. The tool tells me why: the
+two must-haves it missed, like the cathedral explosion in episode 41, never made the 27-clip shortlist I could
+afford on the free tier, so the judge never saw them. And most of my model's picks are mid-episode moments I never
+labelled: unknown, not wrong. They go to a file for an editor. The fix is clear: always shortlist each episode's
+ending, and judge the full pool."
 
 ## 2:10 – 2:45 · It learns from the editor
 

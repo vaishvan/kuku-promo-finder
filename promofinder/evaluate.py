@@ -7,7 +7,8 @@ GAIN = {"must": 3, "good": 1, "bad": 0}
 
 
 def load_gold(path):
-    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(l) for l in f if l.strip()]
 
 
 def _segs(p):
@@ -99,6 +100,8 @@ def metrics(promos, gold, lo, hi, ks=(5, 10), episodes=None):
         out[f"must_recall@{k}"] = round(len(seen) / len(must), 3) if must else None
         out[f"ndcg@{k}"] = round(_dcg(gains) / _dcg(ideal), 3) if ideal and _dcg(ideal) else None
         out[f"distinct_eps@{k}"] = len({s[0] for p in top for s in _segs(p)})
+    offs = [abs(_segs(p)[0][1] - _segs(best_match(p, pos)[0])[0][1]) for p in P[:10] if best_match(p, pos)[0]]
+    out["mean_start_offset_s@10"] = round(sum(offs) / len(offs), 1) if offs else None  # F6: how far from the editor's start
     ious = [best_match(p, pos)[1] for p in P[:10] if best_match(p, pos)[0]]
     out["mean_iou_matched@10"] = round(sum(ious) / len(ious), 3) if ious else None
     return out
@@ -106,19 +109,26 @@ def metrics(promos, gold, lo, hi, ks=(5, 10), episodes=None):
 
 # ---- baselines: any learned system must beat these ----
 def baseline_ep_end(ctx, seconds=40):
-    out = []
+    """Last ~40 s of every episode, ordered by the prior model's code-feature score (F7: ordering by episode number
+    made its NDCG depend on episode order, not quality)."""
+    from .features import extract
+    from .model import Model, vec
+    m, out = Model(), []
     for ep in sorted(ctx["eps"]):
-        E = ctx["eps"][ep]
-        starts = [e.t0 for e in E.events if e.kind in ("dialogue", "action") and E.end - e.t0 <= seconds + 0.01 and E.end - e.t0 >= 20]
+        E_ = ctx["eps"][ep]
+        starts = [e.t0 for e in E_.events if e.kind in ("dialogue", "action") and 20 <= E_.end - e.t0 <= seconds + 0.01]
         if starts:
-            out.append({"segments": [[ep, min(starts), E.end]]})
-    return out
+            seg = [ep, min(starts), E_.end]
+            out.append((m.score(vec(extract(ctx, [tuple(seg)])[0], None)), {"segments": [seg]}))
+    return [p for _, p in sorted(out, key=lambda t: -t[0])]
 
 
-def baseline_random(rows, seed=0, n=200):
+def baseline_random(ctx, seed=0, n=200):
+    """Random valid windows from ALL candidates (F7: sampling the pre-filtered pool was not random)."""
+    from .candidates import singles
     rnd = random.Random(seed)
-    pool = [r for r in rows if not r["safety"]]
-    return [{"segments": r["segments"]} for r in rnd.sample(pool, min(n, len(pool)))]
+    pool = singles(list(ctx["eps"].values()))
+    return [{"segments": [list(s) for s in w]} for w in rnd.sample(pool, min(n, len(pool)))]
 
 
 def bootstrap_diff(promos_a, promos_b, gold, lo, hi, metric="ndcg@10", n=500, seed=0):

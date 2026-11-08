@@ -70,6 +70,47 @@ episode blocks), C4 partly (stitches limited to one episode, picked per episode)
 Medium items fixed in passing: D4 (cache key = rubric hash), D5 (JSON-mode request, first-complete-object parser,
 range validation, retry on bad replies), D6 (cost/latency), F8 (in-sample rows marked), H4 (timecodes).
 
+## Status of the medium and low items (updated 2026-11-08)
+
+| # | Status | What changed / why not |
+|---|---|---|
+| A5 non-atomic registry | **Fixed** | Temp file + `os.replace`, under a lock file; `promote` refuses unknown versions. |
+| A6 unmanaged file handles | **Fixed** | Every open uses a context manager. |
+| B8 resolution ignores action | **Fixed** | Action lines ("walk hand-in-hand into the sunlight", "smiles", "embrace") count toward a resolved ending. |
+| B9 weak clean-entry | **Fixed** | Scene start 1.0, start after a ≥1 s pause 0.8, mid-exchange 0.3; continuation fragments are never starts. |
+| B10 hard-coded duration band | **Fixed** | `PROMO_PLATFORM=tiktok|reels|shorts|any` sets the band (20–35, 20–45, 25–55, 25–55 s). |
+| B11 emotion needs tags | **Fixed** | Tag coverage is measured per show and written to the manifest; below 50% the dialogue text is read instead. |
+| C6 no diversity across beats | **Fixed** | Selection is maximal marginal relevance: logit minus similarity (same characters, same or neighbouring episode) to clips already picked. |
+| C7 fixed prefilter quota | Open | Kept: a score threshold needs calibrated scores, which need editor labels (H3). |
+| C8 discrete window targets | Open (documented) | Approximation; windows every ~5 s across 20–60 s. |
+| D3 few-shot anchors | Open | Anchors drawn from the gold set would leak evaluation labels into the judge; needs editor-approved clips kept outside gold. |
+| D4 / D5 / D6 | **Fixed** | (high pass) rubric-hash cache key; JSON mode + robust parse; cost and latency per run. |
+| E4 leaky CV folds | **Fixed** | (critical pass) contiguous episode blocks. |
+| E5 no time decay | **Fixed** | Labels carry a timestamp; training weights halve every 90 days. Per-editor agreement: open (one editor so far). |
+| E6 unvalidated prior | **Documented** | Provenance of every prior weight is written next to it in `model.py`; it is a starting point until labels exist. |
+| F6 start quality not checked | **Fixed (reported)** | `mean_start_offset_s@10`: seconds between the promo's start and the editor's region start, for matched picks. |
+| F7 unfair baselines | **Fixed** | Random baseline samples all ~15K candidates; the episode-end baseline is ordered by the prior's score, not episode number. |
+| F8 in-sample rows | **Fixed** | (high pass) |
+| F9 misses not listed | **Fixed** | (critical pass) |
+| F10 no real performance link | Open | Needs promos posted and hook rate / hold rate / CPI pulled back as labels. |
+| G2 parser coupling | **Partly fixed** | Untimed blocks are counted and reported; uploads accept any `.txt` names (episode number from filename, header, or order). Still one script format. |
+| G3 speaker labels | **Fixed** | (high pass) alias table, auto-applied only when the uploaded show matches it. |
+| G4 relative paths | Open (documented) | Run from the project folder; acceptable for a single-machine tool. |
+| H3 fake-probability scores | **Fixed** | Each promo gets band A (top 20%), B (next 40%) or C; the raw logit is kept for debugging. |
+| H4 seconds-only timestamps | **Fixed** | (high pass) mm:ss.ff timecodes. |
+| I-1 no service | **Partly fixed** | The demo server is a small local HTTP API (upload zip → job → results, feedback, retrain, eval). Not hardened for multi-user production. |
+| I-2 no run ids | **Fixed** | Every manifest carries a `run_id`. |
+| I-3 tests need cached runs | **Fixed** | Tests rebuild their rows offline when the cache is missing or stale. |
+| I-4 scattered constants | Open | Constants are CLI flags and env vars; a single config file was not worth the extra surface. |
+| I-5 pass-through wrapper | Open (harmless) | `features.extract` kept as the public name. |
+| I-6 stitch cap | **Fixed** | A stitch counts against its first episode only. |
+| I-7 serial judge calls | Open (intentional) | Free tiers rate-limit; serial calls with backoff stay under the limit. |
+| I-8 unversioned rows | **Fixed** | (high pass) schema hash. |
+
+Demo intake: the UI takes a scripts `.zip`, extracts only `.txt` members into a fresh folder (member paths are never
+used, size and count limits stop zip bombs), then runs the pipeline with live progress. Gold labels, aliases and
+the promotion gate are applied only when the uploaded show's fingerprint matches the labelled show.
+
 ---
 
 ## Part 1: How the industry cuts promos, and where this tool departs from it

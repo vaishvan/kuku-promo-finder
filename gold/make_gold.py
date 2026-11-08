@@ -10,7 +10,7 @@ import sys
 import zlib
 
 sys.path.insert(0, ".")
-from promofinder.parse import parse_dir  # noqa: E402
+from promofinder.parse import parse_dir, show_id  # noqa: E402
 
 SPEC = [
     # --- must: strong hook + unresolved end, readable cold ---
@@ -103,13 +103,15 @@ def resolve(ep, mode, n):
 
 
 if __name__ == "__main__":
-    eps = {e.ep: e for e in parse_dir("data/scripts")}
+    parsed = parse_dir("data/scripts")
+    eps = {e.ep: e for e in parsed}
+    show = show_id(parsed)
     with open("gold/gold.jsonl", "w", encoding="utf-8") as f:
         for tier, ep, mode, n, note in SPEC:
             a, b = resolve(eps[ep], mode, n)
             assert 20 <= b - a <= 60.01, (ep, mode, a, b)
             f.write(json.dumps({"id": f"g{ep}{mode[0]}", "segments": [[ep, a, b]], "tier": tier, "position": POSITION[mode],
-                                "labeller": "builder", "note": note,
+                                "labeller": "builder", "note": note, "show": show,
                                 # F2: a frozen third of the gold that the promotion gate never sees
                                 "split": "test" if zlib.crc32(f"g{ep}{mode[0]}".encode()) % 3 == 0 else "val"}) + "\n")
     print(len(SPEC), "gold items")

@@ -12,7 +12,17 @@ from promofinder.parse import parse_dir  # noqa: E402
 
 EPS = parse_dir("data/scripts")
 CTX = build_ctx(EPS, P.load_aliases("gold/aliases.json"))
-ROWS = P.load_rows("runs/r1/rows.jsonl")
+def _rows(path="runs/r1/rows.jsonl"):
+    """I-3: tests build their own rows (offline judge, no network) when the cached run is missing or stale."""
+    try:
+        return P.load_rows(path)
+    except (FileNotFoundError, RuntimeError):
+        rows, _, _ = P.featurize("data/scripts", J.OfflineJudge(), [M.Model()], aliases="auto", log=lambda *_: None)
+        P.save_rows(rows, path)
+        return rows
+
+
+ROWS = _rows()
 
 
 def test_parse():

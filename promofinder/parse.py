@@ -39,6 +39,7 @@ class Episode:
     end: float
     scene_starts: list  # start time of each scene
     events: list  # Events sorted by t0
+    dropped: int = 0  # untimed blocks skipped
 
 
 def _kind(name: str) -> str:
@@ -65,7 +66,8 @@ def _speaker(name: str):
 
 def parse_episode(path: str) -> Episode:
     ep = int(re.search(r"episode-(\d+)", os.path.basename(path)).group(1))
-    lines = [l.strip() for l in open(path, encoding="utf-8").read().splitlines()]
+    with open(path, encoding="utf-8", errors="replace") as f:
+        lines = [l.strip() for l in f.read().splitlines()]
     logline, events, scene_starts = "", [], []
     scene_end, scene_idx = 0.0, -1
     cur = None  # event being filled
@@ -100,11 +102,18 @@ def parse_episode(path: str) -> Episode:
         elif cur is not None and not l.startswith(("Scene heading:", "SCENE", "CONTINUITY", "---", "Actions and")):
             cur.text += (" " if cur.text else "") + l
     flush()
-    events = [e for e in events if e.t0 >= 0]  # drop blocks without timing
+    dropped = sum(1 for e in events if e.t0 < 0)  # blocks without a Start/End line (G2: reported, not hidden)
+    events = [e for e in events if e.t0 >= 0]
     events.sort(key=lambda e: (e.t0, e.t1))
     end = max([scene_end] + [e.t1 for e in events]) if events else scene_end
-    return Episode(ep, logline, end, scene_starts, events)
+    return Episode(ep, logline, end, scene_starts, events, dropped)
 
 
 def parse_dir(folder: str) -> list:
     return [parse_episode(p) for p in sorted(glob.glob(os.path.join(folder, "episode-*.txt")))]
+
+
+def show_id(episodes) -> str:
+    """Fingerprint of a show from its loglines, so gold labels are only applied to the show they were written for."""
+    import hashlib
+    return hashlib.sha1("|".join(e.logline for e in sorted(episodes, key=lambda e: e.ep)).encode()).hexdigest()[:12]

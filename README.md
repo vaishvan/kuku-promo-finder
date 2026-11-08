@@ -28,7 +28,7 @@ python -m promofinder promote v0001                    # human override of the g
 python -m promofinder simulate
 python -m promofinder retrain --feedback runs/feedback.sim.jsonl --min-labels 20
 
-python tests/test_all.py                               # 21 tests
+python tests/test_all.py                               # 21 tests (build their own rows offline if needed)
 ```
 
 Editor sheet rules: `decision` is `accept` or `reject`. A trim (`trim_start`, `trim_end` in seconds) means "cut it
@@ -43,11 +43,22 @@ the format in `promofinder/parse.py`, only that file changes.
 
 ### Demo UI
 ```bash
-python -m promofinder --out runs/live serve      # http://127.0.0.1:8765
+python -m promofinder serve      # http://127.0.0.1:8765
 ```
-Promos (with the script excerpt behind each cut), posting plan, evaluation, and a learning-loop tab where
-Accept/Reject clicks retrain a challenger and run the promotion gate. Demo clicks go to `runs/feedback.demo.jsonl`;
-the demo never saves or promotes a model. Talk track for a 3-minute recording: [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
+1. **Upload** the scripts `.zip`. It is extracted locally into `runs/uploads/<time>/scripts`: only `.txt` members,
+   member paths never used (no zip-slip), size and count limits; episode numbers come from file names, the
+   `EPISODE NUMBER:` header, or file order.
+2. **Run** with the LLM judge (or offline). The pipeline block streams progress: parse → candidates → shortlist →
+   LLM judge (with cache hits) → pairwise re-rank → rank and posting plan. The header shows free requests left.
+   Cached clips always run free; new judgements are capped at today's remaining quota, and pairwise is skipped when
+   the quota is too low, so a demo cannot stall halfway.
+3. **Results:** promo cards (timecodes, handles, opening/ending lines, judge scores and reason, hook type, policy and
+   spoiler flags, score band, the script behind the cut), posting plan, evaluation (only when gold labels exist for
+   that show), and a learning-loop tab where Accept/Reject clicks retrain a challenger and run the gate.
+   Demo clicks go to `runs/feedback.demo.jsonl`; the demo never saves or promotes a model.
+
+UI styling follows the Figma design profile from getdesign.md (black/white canvas, pill buttons, pastel color
+blocks). Talk track for a 3-minute recording: [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
 
 ### Using a real LLM judge
 Copy `.env.example` to `.env` (gitignored) and set `JUDGE_API_KEY`. Any OpenAI-compatible endpoint works; the
@@ -64,43 +75,32 @@ a smaller pool: `run --top-n 25 --stitch-n 2 --pairwise-top 4` is about 40 calls
 3. A logistic ranker weighs the features; weights are retrained from feedback and gated.
 4. Cuts never start on the second half of a split line or end right before one.
 
-## Results (offline judge, builder-written gold v2: 64 regions; validation split 45, frozen test split 19)
+## Results (2026-11-08, after all review fixes)
 
-Held-out block = Ep 31–50. Validation gold in that block: 2 must, 6 good, 5 bad.
+Gold: 64 builder-written regions; validation split 45, frozen test split 19. Held-out block = Ep 31–50
+(validation gold there: 2 must, 6 good, 5 bad).
 
-| System | held-out P@10 | NDCG@10 | top-10: labelled good / bad / unlabelled | frozen test NDCG@10 (scored once) |
+### LLM-judged run (`runs/live`, nvidia/nemotron-3.5-super-vl:free via OpenRouter, $0)
+
+27-candidate shortlist (free tier = 50 requests/day): 9 new calls + 18 cached, 0 retries, 0 fallbacks.
+
+| System | held-out P@10 | NDCG@10 | must-recall@10 | top-10 good / bad / unlabelled |
 |---|---|---|---|---|
-| random valid windows | 0.3 | 0.14 | — | 0.00 |
-| last 40s of every episode | 0.3 | 0.25 | 3 / 3 / 4 | 0.39 |
-| prior weights (v0000) | 0.1 | 0.14 | 1 / 0 / 9 | 0.33 |
-| demo retrain (v0001, not promoted) | 0.1 | 0.14 | 1 / 0 / 9 | 0.51 |
+| random valid windows (from all ~15K candidates) | 0.0 | 0.00 | 0.0 | 0 / 1 / 9 |
+| last 40s of every episode (ordered by prior score) | 0.4 | 0.41 | 1.0 | 4 / 1 / 5 |
+| code features only, same shortlist | 0.1 | 0.14 | 0.0 | 1 / 0 / 9 |
+| code features + LLM judge, same shortlist | 0.1 | 0.14 | 0.0 | 1 / 0 / 9 |
 
-What this says:
-- **The validation gold is too thin to rank systems.** 9 of the model's held-out top 10 match no labelled region, so its precision and NDCG are mostly unknown, not low. The fix is labels, not tuning: `to_label.csv` lists the 12 unlabelled top picks for an editor.
-- The model makes no known-bad picks (0/10). The episode-end baseline makes 3.
-- v0001 (23 simulated labels, retrained with `--min-labels 20` as a demo) tied the champion on validation and was **not promoted**. On the frozen test split it scores higher (0.51 vs 0.33), on 6 good/must items. That is one look at a tiny set, not evidence; the gate correctly ignored it.
-- The test split has now been scored once (`runs/test_usage.json`).
-- Numbers are not comparable to earlier README versions: the gold was split, and features changed.
-- Missed must-haves in the held-out block: Ep 41 (cathedral explodes) and Ep 45 (marriage declared void), both in the pool but ranked too low.
-
-### Live LLM judge run (`runs/live`, nvidia/nemotron-3.5-super-vl:free via OpenRouter)
-
-39 calls (27 rubric scores + 12 pairwise comparisons), 0 retries, 0 fallbacks, about 7.5 minutes of API time,
-cost $0 (free tier). The pool was cut to 27 candidates to fit 50 requests/day.
-
-| System (same 27-candidate pool) | train-block NDCG@10 | held-out NDCG@10 | held-out top-10 good / bad / unlabelled |
-|---|---|---|---|
-| code features only (judge masked) | 0.09 | 0.14 | 1 / 0 / 9 |
-| code features + LLM judge | 0.25 | 0.14 | 1 / 0 / 9 |
-
-- The judge reorders clips sensibly where gold exists (train block 0.09 → 0.25) and its reasons are specific and critical, e.g. "Opening accusation is talky, not shocking" or "'dead Duke' relationship confuses newcomers".
-- Held-out it changes nothing measurable: with 27 candidates for 50 episodes, the held-out block has only a handful of judged clips and 9 of the top 10 are unlabelled.
-- The random baseline here samples from the same pre-filtered pool, so it is not really random (QUALITY_REVIEW F7) and should not be read as "random does as well".
-- To measure the judge properly: a paid key or a few days of the free quota to judge the full 178-candidate pool, and editor labels for `to_label.csv`.
+What this says, plainly:
+- **On this labelled set, the simple baseline wins.** Once its order stopped depending on episode number, "last 40 s of every episode" finds every held-out must-have. The brief defines a promo as ending on a cliffhanger, and this show ends every episode on one, so episode endings are a strong prior.
+- **The model's weak spot is the shortlist, not the judge.** The two held-out must-haves (Ep 41 cathedral explosion, Ep 45 marriage declared void) never reached the 27-clip shortlist, so the LLM never saw them. The free-tier budget forced the shortlist that small; the offline run uses 178.
+- **Most of the model's picks are unlabelled** (9 of 10), mostly mid-episode moments the gold never covered. They are in `to_label.csv`. Until an editor labels them, the model's precision is unknown rather than low.
+- The model makes 0 known-bad picks in its held-out top 10; the baseline makes 1.
+- Next fixes, in order: guarantee each episode's ending window a place in the shortlist (cheap, and the baseline shows it matters), judge the full 178-candidate pool when quota allows, then label `to_label.csv`.
 
 ## Known limits (read before trusting any number)
 1. **Gold and simulated feedback are both written by the builder**; validation gold in the held-out block is 13 items. No inter-annotator check.
-2. **Live LLM judge run once, on a 27-candidate pool** (free-tier limit); its effect on held-out quality is not measurable yet. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
+2. **The LLM judge has only seen a 27-clip shortlist** (free-tier limit). On held-out labels it did not change the ranking, and the shortlist missed both held-out must-haves. The content-based cliffhanger feature is weak (7/26 good vs 3/15 bad episode endings fire).
 3. **One show.** Generalisation untested. The alias table is per show and hand-written.
 4. **Policy and spoiler labels are word lists**, not a policy-trained classifier; treat "review" as "a human looks", not as a verdict.
 5. **Scores are uncalibrated** (all near 0.99); use the rank.

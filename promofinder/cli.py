@@ -42,6 +42,18 @@ def cmd_run(a):
 
 def cmd_eval(a):
     ctx, gold_all = _ctx(a.scripts), E.load_gold(a.gold)
+    gold_all = [g for g in gold_all if g.get("show") in (None, ctx["show"])]
+    if not gold_all:
+        print(f"no gold labels for this show ({ctx['show']}): ranking metrics need labels. Writing to_label.csv only.")
+        promos = P.rank(P.load_rows(os.path.join(a.out, "rows.jsonl")), M.load(), k=40)
+        with open(os.path.join(a.out, "to_label.csv"), "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["id", "rank", "segments", "hook", "cliffhanger", "tier (must/good/bad)"])
+            for p in promos:
+                w.writerow([p["id"], p["rank"], "; ".join(f"Ep{s['episode']} {s['timecode']}" for s in p["segments"]), p["hook"], p["cliffhanger"], ""])
+        with open(os.path.join(a.out, "eval.json"), "w", encoding="utf-8") as f:
+            json.dump({"no_gold": True, "show": ctx["show"], "to_label": len(promos)}, f)
+        return
     rows = P.load_rows(os.path.join(a.out, "rows.jsonl"))
     n = ctx["n_eps"]
     SPLIT = _split(a, n)
@@ -56,7 +68,7 @@ def cmd_eval(a):
     for v in dict.fromkeys(versions):
         systems[f"weights {v}" + (" + LLM judge" if real else "")] = P.rank(rows, M.load(v), k=60)
     systems["baseline: last 40s of each episode"] = [dict(p, rank=i + 1) for i, p in enumerate(E.baseline_ep_end(ctx))]
-    systems["baseline: random valid windows"] = [dict(p, rank=i + 1) for i, p in enumerate(E.baseline_random(rows))]
+    systems["baseline: random valid windows"] = [dict(p, rank=i + 1) for i, p in enumerate(E.baseline_random(ctx))]
     trained_on_train_block = {v for v in versions if v != "v0000"}
     for name, promos in systems.items():
         r = {"train_block": E.metrics(promos, gold, 1, SPLIT - 1), "heldout_block": E.metrics(promos, gold, SPLIT, n),
@@ -220,7 +232,7 @@ def main(argv=None):
     fb = sub.add_parser("feedback"); fb.add_argument("csv"); fb.add_argument("--editor", default="editor"); fb.set_defaults(f=cmd_feedback)
     t = sub.add_parser("retrain"); t.add_argument("--min-labels", type=int, default=30); t.add_argument("--l2", type=float, default=None); t.add_argument("--no-promote", action="store_true"); t.add_argument("--feedback", default=L.FEEDBACK, help=f"label file (simulated: {L.SIM_FEEDBACK})"); t.set_defaults(f=cmd_retrain)
     sv = sub.add_parser("serve", help="local demo UI"); sv.add_argument("--port", type=int, default=8765)
-    sv.set_defaults(f=lambda a: __import__("promofinder.server", fromlist=["serve"]).serve(a.out, a.port))
+    sv.set_defaults(f=lambda a: __import__("promofinder.server", fromlist=["serve"]).serve(a.out, a.port, a.scripts))
     pr = sub.add_parser("promote"); pr.add_argument("version"); pr.set_defaults(f=cmd_promote)
     tl = sub.add_parser("timeline"); tl.add_argument("ep", type=int); tl.add_argument("--start", type=float, default=0); tl.add_argument("--end", type=float, default=999); tl.set_defaults(f=cmd_timeline)
     a = ap.parse_args(argv)

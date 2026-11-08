@@ -1,4 +1,5 @@
 """Stage 3a: deterministic features from the script. All in [0,1]. No show-specific names."""
+import os
 import re
 from collections import Counter
 
@@ -39,13 +40,15 @@ VIOLENCE = re.compile(r"\b(blood\w*|branding|searing|whip(s|ped|ping)?|gash\w*|l
 REVEAL = re.compile(r"\b(it was always me|it's you|you already know|rightful duke|dead duke|declared dead|you're alive|is alive"
                     r"|still alive|my son|true identity|not dead|coming home|you are not .{0,20}wife)\b", re.I)
 RELATION = re.compile(r"\b(sister|father|mother|husband|wife|son|daughter|fianc[ée]e?|groom|bride|aunt|cousin|brother|nephew)\b", re.I)
+RESOLVE_ACTION = re.compile(r"\b(embrac\w*|hand-in-hand|into the sunlight|peaceful\w*|smil(e|es|ed|ing)|relie(f|ved)|fades? (out|to black)|safe(ly)?|together|rests? (her|his) head|laugh\w*)\b", re.I)
+PLATFORM_BANDS = {"any": (25, 55), "tiktok": (20, 35), "reels": (20, 45), "shorts": (25, 55)}  # B10: env PROMO_PLATFORM
 HONORIFIC = {"LADY", "LORD", "THE", "SIR", "MR", "MRS", "MISS", "YOUNG", "OLD"}
 SPOILER_POS = 0.8  # last 20% of a season is treated as spoiler territory by default
 
 
 def _schema():
     import hashlib
-    src = "|".join(CODE_FEATURES) + "|" + "|".join(p.pattern for p in (AROUSAL_TAGS, RESOLVE_TAGS, HOOK_ACTION, CONFLICT, BACKREF, OPEN_THREAT, SAFETY, VIOLENCE, REVEAL, RELATION))
+    src = "|".join(CODE_FEATURES) + "|" + "|".join(p.pattern for p in (AROUSAL_TAGS, RESOLVE_TAGS, HOOK_ACTION, CONFLICT, BACKREF, OPEN_THREAT, SAFETY, VIOLENCE, REVEAL, RELATION, RESOLVE_ACTION)) + "|v2-entry"
     return hashlib.sha256(src.encode()).hexdigest()[:12]
 
 
@@ -82,7 +85,11 @@ def build_ctx(episodes, aliases=None):
         toks = [t for t in re.findall(r"[A-Z][A-Z-]+", label) if t not in HONORIFIC]
         return next((t for t in toks if t in names), " ".join(toks) or label)
 
-    return {"eps": eps, "names": names, "n_eps": max(eps) if eps else 1, "canon": canon}
+    from .parse import show_id
+    tagged = sum(1 for e in episodes for ev in e.events if ev.kind == "dialogue" and ev.tags)
+    dialog = sum(1 for e in episodes for ev in e.events if ev.kind == "dialogue")
+    return {"eps": eps, "names": names, "n_eps": max(eps) if eps else 1, "canon": canon, "show": show_id(episodes),
+            "tag_coverage": round(tagged / dialog, 3) if dialog else 0.0}
 
 
 def events_in(episode, t0, t1):
@@ -102,20 +109,28 @@ def _seg_feats(ctx, segments):
     all_text = " ".join(e.text for e in flat)
 
     f = {}
-    f["dur_fit"] = 1.0 if 25 <= dur <= 55 else max(0.0, 1 - (min(abs(dur - 25), abs(dur - 55)) / 15))
+    lo, hi = PLATFORM_BANDS.get(os.environ.get("PROMO_PLATFORM", "any"), PLATFORM_BANDS["any"])
+    f["dur_fit"] = 1.0 if lo <= dur <= hi else max(0.0, 1 - (min(abs(dur - lo), abs(dur - hi)) / 15))
+    # B11: scripts without parenthetical emotion tags fall back to reading the dialogue text itself
+    use_text = ctx.get("tag_coverage", 1.0) < 0.5
+    hot = lambda e: any(AROUSAL_TAGS.search(t) for t in e.tags) or (use_text and bool(AROUSAL_TAGS.search(e.text)))
+    calm = lambda e: any(RESOLVE_TAGS.search(t) for t in e.tags) or (use_text and bool(RESOLVE_TAGS.search(e.text)))
 
     # hook: first 3s of the clip. Camera text counts for the visual part: the opening frame must work muted.
     head = [e for e in beats if e.t0 < first_seg[1] + 3.0 and e.ep == first_seg[0]]
     head_vis = [e for e in flat if e.t0 < first_seg[1] + 3.0 and e.ep == first_seg[0] and e.kind in ("camera", "action")]
     htxt = " ".join(e.text for e in head)
     vtxt = " ".join(e.text for e in head_vis)
-    arousal = sum(1 for e in head if e.kind == "dialogue" and any(AROUSAL_TAGS.search(t) for t in e.tags))
+    arousal = sum(1 for e in head if e.kind == "dialogue" and hot(e))
     dtxt = " ".join(e.text for e in head if e.kind == "dialogue")
     f["hook_arousal"] = min(1.0, 0.3 * arousal + 0.25 * min(2, len(HOOK_ACTION.findall(vtxt + " " + htxt))) + 0.15 * dtxt.count("!")
                             + 0.15 * dtxt.count("?") + 0.2 * len(CONFLICT.findall(dtxt)))
     f["hook_dialogue"] = 1.0 if any(e.kind == "dialogue" for e in head) else 0.0
     near_scene = any(abs(first_seg[1] - s) < 0.6 for s in ep0.scene_starts)
-    f["clean_entry"] = 1.0 if near_scene else (0.5 if beats and beats[0].kind == "dialogue" else 0.0)
+    # B9: a scene start is cleanest; a start after a >=1 s pause in the beats is next; a mid-exchange start is weak
+    prev_end = max((e.t1 for e in ep0.events if e.kind != "camera" and e.t1 <= first_seg[1] + 0.01), default=None)
+    paused = prev_end is None or first_seg[1] - prev_end >= 1.0
+    f["clean_entry"] = 1.0 if near_scene else (0.8 if paused else 0.3)
 
     # cliffhanger: tail of the clip
     gap = epl.end - last_seg[2]
@@ -139,11 +154,14 @@ def _seg_feats(ctx, segments):
         open_end = 0.3 if tail_ev else 0.0
     f["cliff_open_end"] = open_end
     last3 = [e for e in beats if e.kind == "dialogue"][-3:]
-    f["resolution"] = (sum(1 for e in last3 if any(RESOLVE_TAGS.search(t) for t in e.tags)) / len(last3)) if last3 else 0.0
+    tone = (sum(1 for e in last3 if calm(e)) / len(last3)) if last3 else 0.0
+    # B8: a resolved ending is often only in the action line ("walk hand-in-hand into the sunlight")
+    act = " ".join(e.text for e in story_tail if e.kind == "action")
+    f["resolution"] = min(1.0, tone + (0.5 if RESOLVE_ACTION.search(act) else 0.0))
 
     dlg = [e for e in beats if e.kind == "dialogue"]
     f["conflict_density"] = min(1.0, len(CONFLICT.findall(" ".join(e.text for e in dlg))) / max(dur / 10, 1) / 3)
-    f["emotion_intensity"] = (sum(1 for e in dlg if any(AROUSAL_TAGS.search(t) for t in e.tags)) / len(dlg)) if dlg else 0.0
+    f["emotion_intensity"] = (sum(1 for e in dlg if hot(e)) / len(dlg)) if dlg else 0.0
     f["speech_ratio"] = min(1.0, sum(e.t1 - e.t0 for e in dlg) / max(dur, 1))
     turns = sum(1 for a, b in zip(dlg, dlg[1:]) if a.speaker != b.speaker)
     f["turn_rate"] = min(1.0, turns / max(dur / 10, 1) / 4)

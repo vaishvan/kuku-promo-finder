@@ -2,6 +2,7 @@
 import csv
 import json
 import os
+import time
 
 from . import candidates as C
 from . import evaluate as E
@@ -23,6 +24,7 @@ def log_feedback(records, path=FEEDBACK):
             if (r["id"], r.get("editor")) in seen:
                 continue
             seen.add((r["id"], r.get("editor")))
+            r.setdefault("ts", time.time())  # for recency weighting (E5)
             f.write(json.dumps(r) + "\n")
             n += 1
     return n
@@ -99,12 +101,13 @@ def retrain(champion, min_labels=30, l2=None, path=FEEDBACK, grid=(0.1, 1, 10, 1
     block = {e: i * folds // len(uniq) for i, e in enumerate(uniq)}
     X, Y, G = [r["x"] for r in fb], [r["y"] for r in fb], [block[_ep(r)] for r in fb]
     EP = [_ep(r) for r in fb]
+    W = M.recency_weights(fb)
     pairwise = len(M.pairs_of(Y, EP)) >= 10
 
     def fit(idx, lam):
         if pairwise:
-            return M.train_pairwise([X[i] for i in idx], [Y[i] for i in idx], [EP[i] for i in idx], champion, l2=lam)
-        return M.train([X[i] for i in idx], [Y[i] for i in idx], champion, l2=lam)
+            return M.train_pairwise([X[i] for i in idx], [Y[i] for i in idx], [EP[i] for i in idx], champion, l2=lam, weights=[W[i] for i in idx])
+        return M.train([X[i] for i in idx], [Y[i] for i in idx], champion, l2=lam, weights=[W[i] for i in idx])
 
     cv = {}
     for lam in ([l2] if l2 else grid):

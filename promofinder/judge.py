@@ -64,6 +64,10 @@ def first_json(text):
     raise ValueError("no JSON object in reply")
 
 
+class BudgetExceeded(RuntimeError):
+    pass
+
+
 class LLMJudge:
     RETRY_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
 
@@ -75,7 +79,8 @@ class LLMJudge:
         self.cache_path = cache_path
         self.attempts, self.base_delay = attempts, base_delay
         self.sleep = sleep or time.sleep
-        self.stats = {"calls": 0, "cache_hits": 0, "retries": 0, "failures": 0, "api_seconds": 0.0}
+        self.stats = {"calls": 0, "cache_hits": 0, "retries": 0, "failures": 0, "api_seconds": 0.0, "new": 0, "over_budget": 0}
+        self.max_new = None  # cap on uncached judgements (free-tier quota); cached ones are always served
         self.cache = {}
         if os.path.exists(cache_path):
             with open(cache_path, encoding="utf-8") as f:
@@ -121,6 +126,10 @@ class LLMJudge:
         if key in self.cache:
             self.stats["cache_hits"] += 1
             return self.cache[key]
+        if self.max_new is not None and self.stats["new"] >= self.max_new:
+            self.stats["over_budget"] += 1
+            raise BudgetExceeded(f"free-request budget of {self.max_new} new calls used up")
+        self.stats["new"] += 1
         v = fn()
         os.makedirs(os.path.dirname(self.cache_path) or ".", exist_ok=True)
         with open(self.cache_path, "a", encoding="utf-8") as f:
