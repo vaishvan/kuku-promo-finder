@@ -1,5 +1,8 @@
 # Promo Finder
 
+**Live demo: https://promo-finder-7ln6.onrender.com** (click "Try the sample show", or upload a scripts zip; the free
+server sleeps when idle, so the first visit can take about a minute).
+
 Finds 20–60s promo clips in microdrama screenplays, learns from editor feedback, and gates every new
 model on an offline evaluation. Design: [DESIGN.md](DESIGN.md). Known problems and their status:
 [QUALITY_REVIEW.md](QUALITY_REVIEW.md).
