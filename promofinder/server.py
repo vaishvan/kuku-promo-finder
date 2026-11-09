@@ -373,6 +373,9 @@ class H(BaseHTTPRequestHandler):
         log_so_far = sess.job["log"]
         sess.reset(status="running", started=time.time(), log=log_so_far)
         out = os.path.join(sess.upload, "out")
+        # a new run starts clean: previous promos, accept/reject choices and retrain inputs are discarded
+        shutil.rmtree(out, ignore_errors=True)
+        sess.out = None
         threading.Thread(target=run_job, args=(sess, os.path.join(sess.upload, "scripts"), out, offline,
                                                int(body.get("k", 25))), daemon=True).start()
         return {"ok": True}

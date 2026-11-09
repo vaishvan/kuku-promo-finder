@@ -172,7 +172,7 @@ function renderJob(){const j=J;if(!j.status||j.status==="idle")return;showProgre
  $("#barFill").style.width=pct+"%";const L=$("#log");L.textContent=(j.log||[]).join("\n");L.scrollTop=L.scrollHeight}
 async function refreshJob(){J=await api("/api/job");renderJob();return J}
 async function start(offline){["#runLlm","#runOff"].forEach(s=>$(s).disabled=true);
- try{await api("/api/start",{offline,k:25});showProgress();$("#progress").scrollIntoView({behavior:"smooth"});
+ try{await api("/api/start",{offline,k:25});S=null;tab="review";$("#results").hidden=true;$("#main").innerHTML="";showProgress();$("#progress").scrollIntoView({behavior:"smooth"});
   clearInterval(poll);poll=setInterval(async()=>{const j=await refreshJob();if(j.status!=="running"){clearInterval(poll);
    if(j.status==="done"){await load();budget();$("#results").scrollIntoView({behavior:"smooth"})}
    $("#runOff").disabled=false;$("#runLlm").disabled=!$("#runLlm").dataset.ok}},1000)}
