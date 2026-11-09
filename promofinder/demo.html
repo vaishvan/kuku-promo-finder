@@ -78,7 +78,13 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
 .wave ol{margin:12px 0 0;padding-left:20px}.wave li{margin:8px 0}.wave a{color:#000;font-weight:600}
 .empty{padding:40px 0;color:var(--mute)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--canvas);padding:12px 18px;border-radius:50px;font-size:14px;display:none;z-index:9}
-@media (max-width:768px){.wrap{padding:0 16px}.block{border-radius:0;margin:16px -16px;padding:32px 16px}h1.display{font-size:44px}.grid{grid-template-columns:1fr}.pill{width:100%;justify-content:center}.actions .pill{width:100%}.status{display:none}}
+.hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:40px;align-items:center;padding:36px 40px}
+.hero h1.display{font-size:42px;line-height:1.08;letter-spacing:-.8px;max-width:none;margin:0 0 12px}
+.hero .sub{font-size:17px;margin:0;max-width:44ch}
+.hero .drop{padding:18px 20px;gap:16px}.hero .drop .ic{width:44px;height:44px;font-size:20px}
+.hero .actions{margin-top:14px;gap:10px}.hero .actions .pill{padding:10px 18px;min-height:40px;font-size:14px}
+@media (max-width:960px){.hero{grid-template-columns:1fr;gap:20px;padding:28px}}
+@media (max-width:768px){.hero h1.display{font-size:32px}.wrap{padding:0 16px}.block{border-radius:0;margin:16px -16px;padding:32px 16px}h1.display{font-size:44px}.grid{grid-template-columns:1fr}.pill{width:100%;justify-content:center}.actions .pill{width:100%}.status{display:none}}
 </style>
 </head>
 <body>
@@ -88,9 +94,12 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
 </div></header>
 
 <div class="wrap">
-  <section class="block lilac">
-    <h1 class="display">Find the promos hiding in a microdrama.</h1>
-    <p class="sub">Drop the scripts zip. Every 20–60 second cut is scored, and the best go to an LLM judge.</p>
+  <section class="block lilac hero">
+    <div class="hero-text">
+      <h1 class="display">Find the promos hiding in a microdrama.</h1>
+      <p class="sub">Drop the scripts zip. Every 20–60 second cut is scored, and the best go to an LLM judge.</p>
+    </div>
+    <div class="hero-act">
     <label class="drop" id="drop">
       <span class="ic">↥</span>
       <span class="t"><b id="dropTitle">Drop the scripts .zip here</b><div id="dropSub">or click to choose a file</div></span>
@@ -102,6 +111,7 @@ th{font:500 11px/1.2 var(--mono);letter-spacing:.5px;text-transform:uppercase;co
       <button class="pill mag" id="runLlm" disabled>Run with LLM judge</button>
       <button class="pill sec" id="runOff" disabled>Run offline (no API)</button>
       <button class="pill sec" id="sampleBtn" hidden>Try the sample show</button>
+    </div>
     </div>
   </section>
 
